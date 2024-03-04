@@ -29,9 +29,10 @@ val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
 train_data = ArrayDataset(img=[train_image_path + file for file in os.listdir(train_image_path)],
                           img_transform=transformer,
                           seg=[train_dm_path + file for file in os.listdir(train_dm_path)],
-                          seg_transform=transformer)
+                          seg_transform=transformer,
+                          device=device)
 
-train_dataloader = DataLoader(train_data.to(device), batch_size=batch_size, shuffle=True, pin_memory=th.cuda.is_available())
+train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=th.cuda.is_available())
 
 im, seg = first(train_dataloader)
 print(im.shape, seg.shape)
