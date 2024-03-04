@@ -10,8 +10,10 @@ from torch.utils.data import DataLoader
 
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
 
+device = th.device("cuda" if th.cuda.is_available() else "cpu")
+
 batch_size = 32
-new_image_size = (160, 160)
+new_image_size = (1600, 1600) # make smaller to use on Laptop
 
 transformer = Compose([LoadImage(image_only=True),
                        EnsureChannelFirst(),
@@ -41,7 +43,7 @@ model = UNet(
     channels=(16, 32, 64, 128, 256),
     strides=(2, 2, 2, 2),
     num_res_units=2,
-)
+).to(device)
 
 opt = th.optim.Adam(model.parameters(), 1e-3)
 loss = DiceLoss(sigmoid=True)
