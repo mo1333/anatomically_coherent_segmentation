@@ -31,7 +31,7 @@ train_data = ArrayDataset(img=[train_image_path + file for file in os.listdir(tr
                           seg=[train_dm_path + file for file in os.listdir(train_dm_path)],
                           seg_transform=transformer)
 
-train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True)
+train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=th.cuda.is_available())
 
 im, seg = first(train_dataloader)
 print(im.shape, seg.shape)
