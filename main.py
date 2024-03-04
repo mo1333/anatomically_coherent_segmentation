@@ -48,7 +48,7 @@ model = UNet(
 
 opt = th.optim.Adam(model.parameters(), 1e-3)
 loss = DiceLoss(sigmoid=True)
-trainer = ignite.engine.create_supervised_trainer(model, opt, loss, "cpu", False)
+trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
 
 epochs = 1
 
