@@ -1,7 +1,9 @@
 import os
+
 import ignite
 import torch as th
 from monai.data import ArrayDataset
+from monai.handlers import TensorBoardStatsHandler
 from monai.losses import DiceLoss
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose
@@ -9,11 +11,14 @@ from monai.utils import first
 from torch.utils.data import DataLoader
 
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
+# https://colab.research.google.com/drive/1wy8XUSnNWlhDNazFdvGBHLfdkGvOHBKe#scrollTo=uHAA3LUxD2b6
 
-device = th.device("cuda" if th.cuda.is_available() else "cpu")
-
-batch_size = 32
-new_image_size = (1600, 1600) # make smaller to use on Laptop
+device_str = "cuda" if th.cuda.is_available() else "cpu"
+device = th.device(device_str)
+epochs = 1
+batch_size = 8
+new_image_size = (160, 160)  # make smaller to use on Laptop
+log_dir = "experiments/logs/"
 
 transformer = Compose([LoadImage(image_only=True),
                        EnsureChannelFirst(),
@@ -31,10 +36,13 @@ train_data = ArrayDataset(img=[train_image_path + file for file in os.listdir(tr
                           seg=[train_dm_path + file for file in os.listdir(train_dm_path)],
                           seg_transform=transformer)
 
-train_dataloader = DataLoader(train_data, batch_size=batch_size, shuffle=True, pin_memory=th.cuda.is_available())
+train_dataloader = DataLoader(train_data,
+                              batch_size=batch_size,
+                              shuffle=True,
+                              pin_memory=th.cuda.is_available(),
+                              pin_memory_device=device_str)
 
 im, seg = first(train_dataloader)
-print(im.shape, seg.shape)
 
 model = UNet(
     spatial_dims=2,
@@ -48,7 +56,6 @@ model = UNet(
 opt = th.optim.Adam(model.parameters(), 1e-3)
 loss = DiceLoss(sigmoid=True)
 trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
-
-epochs = 1
-
+train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=log_dir, output_transform=lambda x: x)
+train_tensorboard_stats_handler.attach(trainer)
 trainer.run(train_dataloader, epochs)
