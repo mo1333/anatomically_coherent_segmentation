@@ -6,7 +6,7 @@ import ignite
 import torch as th
 from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
-from monai.losses import DiceLoss
+from monai.losses import DiceLoss, DiceFocalLoss
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose
 from monai.utils import first
@@ -73,7 +73,7 @@ model = UNet(
 ).to(device)
 
 opt = th.optim.Adam(model.parameters(), 1e-3)
-loss = DiceLoss(sigmoid=True)
+loss = DiceFocalLoss()
 trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
 
 # Record the loss
