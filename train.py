@@ -36,12 +36,12 @@ def train():
                            EnsureChannelFirst(),
                            Resize(image_size)])
 
-    train_image_path = "data_test/REFUGE2/Train/Images/"
-    train_dm_path = "data_test/REFUGE2/Train/Disc_Masks/"
-    test_image_path = "data_test/REFUGE2/Test/Images/"
-    test_dm_path = "data_test/REFUGE2/Test/Disc_Masks/"
-    val_image_path = "data_test/REFUGE2/Validation/Images/"
-    val_dm_path = "data_test/REFUGE2/Validation/Disc_Masks/"
+    train_image_path = "data/REFUGE2/Train/Images/"
+    train_dm_path = "data/REFUGE2/Train/Disc_Masks/"
+    test_image_path = "data/REFUGE2/Test/Images/"
+    test_dm_path = "data/REFUGE2/Test/Disc_Masks/"
+    val_image_path = "data/REFUGE2/Validation/Images/"
+    val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
 
     train_data = ArrayDataset(img=[train_image_path + file for file in os.listdir(train_image_path)],
                               img_transform=transformer,
