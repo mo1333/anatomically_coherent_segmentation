@@ -1,12 +1,9 @@
-import json
 import torch as th
 from monai.handlers import CheckpointLoader
 from monai.networks.nets import UNet
 
 
-def get_model(exp_path):
-    with open(exp_path + "model_config.json", 'r') as file:
-        model_config = json.load(file)
+def get_model(exp_path, model_config):
 
     model = UNet(
         spatial_dims=model_config["spatial_dims"],
