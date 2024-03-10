@@ -75,41 +75,41 @@ def train():
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
     loss_func = DiceCELoss(sigmoid=True)
-    # trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
-    #
-    # # Record the loss
-    # train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path, output_transform=lambda x: x)
-    # train_tensorboard_stats_handler.attach(trainer)
-    #
-    # # Save the current model
-    # checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
-    # trainer.add_event_handler(
-    #     event_name=ignite.engine.Events.EPOCH_COMPLETED,
-    #     handler=checkpoint_handler,
-    #     to_save={"net": model, "opt": opt},
-    # )
-    #
-    # ProgressBar(persist=False).attach(trainer)
-    # trainer.run(train_dataloader, epochs)
+    trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
 
-    writer = SummaryWriter(log_dir=exp_path)
-    for epoch in tqdm(range(epochs)):
-        model.train()
-        epoch_loss = 0
-        step = 0
-        for batch_data in train_dataloader:
-            step += 1
-            inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
-            opt.zero_grad()
-            outputs = model(inputs)
-            loss = loss_func(outputs, labels)
-            loss.backward()
-            opt.step()
-            epoch_loss += loss.item()
-            epoch_len = len(train_data) // train_dataloader.batch_size
-            writer.add_scalar("train loss", loss.item(), epoch_len * epoch + step)
+    # Record the loss
+    train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path, output_transform=lambda x: x)
+    train_tensorboard_stats_handler.attach(trainer)
 
-    writer.close()
+    # Save the current model
+    checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
+    trainer.add_event_handler(
+        event_name=ignite.engine.Events.EPOCH_COMPLETED,
+        handler=checkpoint_handler,
+        to_save={"net": model, "opt": opt},
+    )
+
+    ProgressBar(persist=False).attach(trainer)
+    trainer.run(train_dataloader, epochs)
+
+    # writer = SummaryWriter(log_dir=exp_path)
+    # for epoch in tqdm(range(epochs)):
+    #     model.train()
+    #     epoch_loss = 0
+    #     step = 0
+    #     for batch_data in train_dataloader:
+    #         step += 1
+    #         inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
+    #         opt.zero_grad()
+    #         outputs = model(inputs)
+    #         loss = loss_func(outputs, labels)
+    #         loss.backward()
+    #         opt.step()
+    #         epoch_loss += loss.item()
+    #         epoch_len = len(train_data) // train_dataloader.batch_size
+    #         writer.add_scalar("train loss", loss.item(), epoch_len * epoch + step)
+    #
+    # writer.close()
 
     endtime = datetime.now()
     time_diff = endtime - starttime
