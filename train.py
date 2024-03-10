@@ -4,7 +4,7 @@ from datetime import datetime
 from tqdm import tqdm
 
 import ignite
-from ignite.contrib.engines import common
+from ignite.contrib.handlers import ProgressBar
 import torch as th
 from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
@@ -87,9 +87,7 @@ def train():
         to_save={"net": model, "opt": opt},
     )
 
-    common.setup_common_training_handlers(trainer,
-                                          with_pbars=True)
-
+    ProgressBar(persist=True).attach(trainer)
     trainer.run(train_dataloader, epochs)
 
 
