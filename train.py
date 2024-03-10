@@ -24,8 +24,7 @@ def train():
     starttime = datetime.now()
     now_str = starttime.strftime("%Y_%m_%d__%H_%M_%S")
 
-    device_str = "cuda" if th.cuda.is_available() else "cpu"
-    device = th.device(device_str)
+    device = th.device("cuda" if th.cuda.is_available() else "cpu")
 
     with open("config.json", 'r') as file:
         config = json.load(file)
@@ -56,6 +55,7 @@ def train():
     train_dataloader = DataLoader(train_data,
                                   batch_size=batch_size,
                                   shuffle=True,
+                                  num_workers=16,
                                   pin_memory=th.cuda.is_available())
 
     if not os.path.exists(exp_path):
@@ -107,7 +107,7 @@ def train():
             opt.step()
             epoch_loss += loss.item()
             epoch_len = len(train_data) // train_dataloader.batch_size
-            writer.add_scalar("train_loss", loss.item(), epoch_len * epoch + step)
+            writer.add_scalar("train loss", loss.item(), epoch_len * epoch + step)
 
     writer.close()
 
