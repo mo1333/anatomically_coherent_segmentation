@@ -92,7 +92,7 @@ def train():
     # ProgressBar(persist=False).attach(trainer)
     # trainer.run(train_dataloader, epochs)
 
-    writer = SummaryWriter()
+    writer = SummaryWriter(log_dir=exp_path)
     for epoch in tqdm(range(epochs)):
         model.train()
         epoch_loss = 0
