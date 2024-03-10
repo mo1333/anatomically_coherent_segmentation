@@ -4,6 +4,7 @@ from datetime import datetime
 from tqdm import tqdm
 
 import ignite
+from ignite.contrib.engines import common
 import torch as th
 from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
@@ -85,8 +86,11 @@ def train():
         handler=checkpoint_handler,
         to_save={"net": model, "opt": opt},
     )
-    for i in tqdm(range(epochs)):
-        trainer.run(train_dataloader, 1)
+
+    common.setup_common_training_handlers(trainer,
+                                          with_pbars=True)
+
+    trainer.run(train_dataloader, epochs)
 
 
 if __name__ == "__main__":
