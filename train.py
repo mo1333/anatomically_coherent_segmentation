@@ -1,16 +1,17 @@
+import json
 import os
 from datetime import datetime
-import json
+from tqdm import tqdm
 
 import ignite
 import torch as th
 from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
-from monai.losses import DiceLoss, DiceFocalLoss
+from monai.losses import DiceLoss
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose
-from monai.utils import first
 from torch.utils.data import DataLoader
+
 
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
 # https://colab.research.google.com/drive/1wy8XUSnNWlhDNazFdvGBHLfdkGvOHBKe#scrollTo=uHAA3LUxD2b6
@@ -84,8 +85,9 @@ def train():
         handler=checkpoint_handler,
         to_save={"net": model, "opt": opt},
     )
+    for i in tqdm(range(epochs)):
+        trainer.run(train_dataloader, 1)
 
-    trainer.run(train_dataloader, epochs)
 
 if __name__ == "__main__":
     train()
