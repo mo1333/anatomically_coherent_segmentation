@@ -6,6 +6,7 @@ from tqdm import tqdm
 import ignite
 from ignite.contrib.handlers import ProgressBar
 import torch as th
+from torch.utils.tensorboard import SummaryWriter
 from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
 from monai.losses import DiceLoss
@@ -15,6 +16,7 @@ from torch.utils.data import DataLoader
 
 
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
+# and https://github.com/Project-MONAI/tutorials/blob/main/2d_segmentation/torch/unet_training_array.py
 # https://colab.research.google.com/drive/1wy8XUSnNWlhDNazFdvGBHLfdkGvOHBKe#scrollTo=uHAA3LUxD2b6
 
 
@@ -72,23 +74,40 @@ def train():
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss = DiceLoss(softmax=True)
-    trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
+    loss = DiceLoss(sigmoid=True)
+    # trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
+    #
+    # # Record the loss
+    # train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path, output_transform=lambda x: x)
+    # train_tensorboard_stats_handler.attach(trainer)
+    #
+    # # Save the current model
+    # checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
+    # trainer.add_event_handler(
+    #     event_name=ignite.engine.Events.EPOCH_COMPLETED,
+    #     handler=checkpoint_handler,
+    #     to_save={"net": model, "opt": opt},
+    # )
+    #
+    # ProgressBar(persist=False).attach(trainer)
+    # trainer.run(train_dataloader, epochs)
 
-    # Record the loss
-    train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path, output_transform=lambda x: x)
-    train_tensorboard_stats_handler.attach(trainer)
-
-    # Save the current model
-    checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
-    trainer.add_event_handler(
-        event_name=ignite.engine.Events.EPOCH_COMPLETED,
-        handler=checkpoint_handler,
-        to_save={"net": model, "opt": opt},
-    )
-
-    ProgressBar(persist=False).attach(trainer)
-    trainer.run(train_dataloader, epochs)
+    writer = SummaryWriter()
+    for epoch in tqdm(range(epochs)):
+        model.train()
+        epoch_loss = 0
+        step = 0
+        for batch_data in train_dataloader:
+            step += 1
+            inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
+            opt.zero_grad()
+            outputs = model(inputs)
+            loss = loss(outputs, labels)
+            loss.backward()
+            opt.step()
+            epoch_loss += loss.item()
+            epoch_len = len(train_data) // train_dataloader.batch_size
+            writer.add_scalar("train_loss", loss.item(), epoch_len * epoch + step)
 
     endtime = datetime.now()
     time_diff = endtime - starttime
