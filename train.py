@@ -94,8 +94,8 @@ def train():
     endtime = datetime.now()
     time_diff = endtime - starttime
     hours = divmod(time_diff.total_seconds(), 3600)
-    minutes = divmod(hours[1])
-    seconds = divmod(minutes[1])
+    minutes = divmod(hours[1], 60)
+    seconds = divmod(minutes[1], 1)
     print("Training took %d:%d:%d" % (hours[0], minutes[0], seconds[0]))
 
 if __name__ == "__main__":
