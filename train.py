@@ -19,7 +19,8 @@ from torch.utils.data import DataLoader
 
 
 def train():
-    now_str = datetime.now().strftime("%Y_%m_%d__%H_%M_%S")
+    starttime = datetime.now()
+    now_str = starttime.strftime("%Y_%m_%d__%H_%M_%S")
 
     device_str = "cuda" if th.cuda.is_available() else "cpu"
     device = th.device(device_str)
@@ -87,9 +88,15 @@ def train():
         to_save={"net": model, "opt": opt},
     )
 
-    ProgressBar(persist=True).attach(trainer)
+    ProgressBar(persist=False).attach(trainer)
     trainer.run(train_dataloader, epochs)
 
+    endtime = datetime.now()
+    time_diff = endtime - starttime
+    hours = divmod(time_diff.total_seconds(), 3600)
+    minutes = divmod(hours[1])
+    seconds = divmod(minutes[1])
+    print("Training took %d:%d:%d" % (hours[0], minutes[0], seconds[0]))
 
 if __name__ == "__main__":
     train()
