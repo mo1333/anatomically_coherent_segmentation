@@ -74,7 +74,7 @@ def train():
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss = DiceLoss(sigmoid=True)
+    loss_func = DiceLoss(sigmoid=True)
     # trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
     #
     # # Record the loss
@@ -102,7 +102,7 @@ def train():
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             opt.zero_grad()
             outputs = model(inputs)
-            loss = loss(outputs, labels)
+            loss = loss_func(outputs, labels)
             loss.backward()
             opt.step()
             epoch_loss += loss.item()
