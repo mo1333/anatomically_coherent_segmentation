@@ -54,8 +54,7 @@ def train():
     train_dataloader = DataLoader(train_data,
                                   batch_size=batch_size,
                                   shuffle=True,
-                                  pin_memory=th.cuda.is_available(),
-                                  pin_memory_device=device_str)
+                                  pin_memory=th.cuda.is_available())
 
     if not os.path.exists(exp_path):
         os.makedirs(exp_path)
