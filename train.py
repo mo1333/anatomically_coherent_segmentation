@@ -9,7 +9,7 @@ import torch as th
 from torch.utils.tensorboard import SummaryWriter
 from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
-from monai.losses import DiceLoss
+from monai.losses import DiceLoss, DiceCELoss
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose
 from torch.utils.data import DataLoader
@@ -74,7 +74,7 @@ def train():
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss_func = DiceLoss(sigmoid=True)
+    loss_func = DiceCELoss(sigmoid=True)
     # trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
     #
     # # Record the loss
@@ -108,6 +108,8 @@ def train():
             epoch_loss += loss.item()
             epoch_len = len(train_data) // train_dataloader.batch_size
             writer.add_scalar("train_loss", loss.item(), epoch_len * epoch + step)
+
+    writer.close()
 
     endtime = datetime.now()
     time_diff = endtime - starttime
