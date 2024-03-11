@@ -11,7 +11,7 @@ from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
 from monai.losses import DiceLoss, DiceCELoss
 from monai.networks.nets import UNet
-from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, NormalizeIntensity
+from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
 from torch.utils.data import DataLoader
 
 
@@ -38,7 +38,7 @@ def train():
 
     transformer = Compose([LoadImage(image_only=True),
                            EnsureChannelFirst(),
-                           NormalizeIntensity(),
+                           ScaleIntensity(),
                            Resize(image_size)])
 
     train_image_path = "data/REFUGE2/Train/Images/"
@@ -71,6 +71,8 @@ def train():
         out_channels=model_config["out_channels"],
         channels=model_config["channels"],
         strides=model_config["strides"],
+        kernel_size=model_config["kernel_size"],
+        up_kernel_size=model_config["up_kernel_size"],
         num_res_units=model_config["num_res_units"],
         act=model_config["activation"]
     ).to(device)
@@ -80,7 +82,9 @@ def train():
     trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
 
     # Record the loss
-    train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path, output_transform=lambda x: x)
+    train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
+                                                              iteration_log=False,
+                                                              output_transform=lambda x: x)
     train_tensorboard_stats_handler.attach(trainer)
 
     # Save the current model
