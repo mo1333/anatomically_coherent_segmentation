@@ -74,7 +74,7 @@ def train():
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss_func = DiceCELoss(sigmoid=True)
+    loss = DiceLoss(sigmoid=True)
     trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
 
     # Record the loss
