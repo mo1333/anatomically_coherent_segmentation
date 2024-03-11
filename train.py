@@ -11,7 +11,7 @@ from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
 from monai.losses import DiceLoss, DiceCELoss
 from monai.networks.nets import UNet
-from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose
+from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, NormalizeIntensity
 from torch.utils.data import DataLoader
 
 
@@ -38,6 +38,7 @@ def train():
 
     transformer = Compose([LoadImage(image_only=True),
                            EnsureChannelFirst(),
+                           NormalizeIntensity(),
                            Resize(image_size)])
 
     train_image_path = "data/REFUGE2/Train/Images/"
@@ -70,7 +71,8 @@ def train():
         out_channels=model_config["out_channels"],
         channels=model_config["channels"],
         strides=model_config["strides"],
-        num_res_units=model_config["num_res_units"]
+        num_res_units=model_config["num_res_units"],
+        act=model_config["activation"]
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
