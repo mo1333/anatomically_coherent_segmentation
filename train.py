@@ -83,7 +83,6 @@ def train():
 
     # Record the loss
     train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
-                                                              iteration_log=False,
                                                               output_transform=lambda x: x)
     train_tensorboard_stats_handler.attach(trainer)
 
