@@ -70,9 +70,9 @@ def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
     y_pred = np.array(y_pred)
 
     channels_of_interest = [1, 2]
-    fig, (plots) = plt.subplots(2,
+    fig, (plots) = plt.subplots(3,
                                 len(channels_of_interest),
-                                figsize=(8, 8))
+                                figsize=(10, 8))
 
     for plot, j in zip(plots, channels_of_interest):
         best_metric = -1
@@ -89,7 +89,12 @@ def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
                 best_metric = m
                 best_thresh = thresh
         plot[0].plot(thresh_list, m_list)
-        plot[1].imshow(y_pred[0, j] <= best_thresh, cmap="gray")
+        plot[0].set_title("metric over threshold")
 
+        plot[1].imshow(y_pred[0, j] <= best_thresh, cmap="gray") # take the first image in the batch and show thresholded version of model output
+        plot[1].set_axis_off()
+
+        plot[2].imshow(y_true[0, j], cmap="gray")
+        plot[2].set_axis_off()
     plt.savefig(save_name)
     plt.show()

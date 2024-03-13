@@ -167,7 +167,7 @@ def train():
         plot_metric_over_thresh(metric,
                                 th.sigmoid(output_images.detach()),
                                 seg,
-                                exp_path + "thresh_variation")
+                                exp_path + "thresh_variation.png")
 
     # --------------
     # --- FINISH ---
