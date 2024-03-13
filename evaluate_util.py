@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
-import torch as th
 import numpy as np
+import torch as th
 from monai.handlers import CheckpointLoader
 from monai.networks.nets import UNet
 
@@ -82,8 +82,8 @@ def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
         for thresh in thresh_list:
             y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] <= thresh), 1)
             y_true_only1channel = th.unsqueeze(y_true[:, j], 1)
-            m = metric(y_pred_only1channel,
-                       y_true_only1channel)
+            m = th.sum(metric(y_pred_only1channel,
+                              y_true_only1channel))
             m_list.append(m)
             if best_metric < m:
                 best_metric = m
