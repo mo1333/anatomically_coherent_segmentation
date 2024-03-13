@@ -165,7 +165,7 @@ def train():
 
         metric = DiceMetric()
         plot_metric_over_thresh(metric,
-                                th.sigmoid(output_images[0].detach()),
+                                th.sigmoid(output_images.detach()),
                                 seg,
                                 exp_path + "thresh_variation")
 

@@ -89,7 +89,7 @@ def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
                 best_metric = m
                 best_thresh = thresh
         plot[0].plot(thresh_list, m_list)
-        plot[1].imshow(y_pred <= best_thresh, cmap="gray")
+        plot[1].imshow(y_pred[0, j] <= best_thresh, cmap="gray")
 
     plt.savefig(save_name)
     plt.show()
