@@ -1,11 +1,11 @@
-import torch as th
 import matplotlib.pyplot as plt
+import torch as th
+import numpy as np
 from monai.handlers import CheckpointLoader
 from monai.networks.nets import UNet
 
 
 def get_model(exp_path, model_config):
-
     # make sure loading is backwards compatible
     if "activation" not in model_config.keys():
         model_config["activation"] = "PReLU"
@@ -35,6 +35,7 @@ def get_model(exp_path, model_config):
 
     return model, opt
 
+
 def plot_model_output(sample, save_name):
     fig, ((img1, img2), (img3, img4), (img5, img6), (img7, img8)) = plt.subplots(4, 2, figsize=(16, 16))
 
@@ -60,6 +61,33 @@ def plot_model_output(sample, save_name):
         pos = img.imshow(sample[1][i], cmap="gray", vmin=0, vmax=1)
         img.set_axis_off()
         fig.colorbar(pos, ax=img)
+
+    plt.savefig(save_name)
+    plt.show()
+
+
+def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
+    y_pred = np.array(y_pred)
+    y_true = np.array(y_true)
+
+    channels_of_interest = [1, 2]
+    fig, (plots) = plt.subplots(2,
+                                len(channels_of_interest),
+                                figsize=(8, 8))
+
+    for plot, j in zip(plots, channels_of_interest):
+        best_metric = -1
+        best_thresh = -1
+        thresh_list = np.arange(0, 1, 0.1)
+        m_list = []
+        for thresh in thresh_list:
+            m = metric(y_pred[:, j] <= thresh, y_true[:, j])
+            m_list.append(m)
+            if best_metric < m:
+                best_metric = m
+                best_thresh = thresh
+        plot[0].plot(thresh_list, m_list)
+        plot[1].imshow(y_pred <= best_thresh, cmap="gray")
 
     plt.savefig(save_name)
     plt.show()
