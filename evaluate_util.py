@@ -1,4 +1,5 @@
 import torch as th
+import matplotlib.pyplot as plt
 from monai.handlers import CheckpointLoader
 from monai.networks.nets import UNet
 
@@ -34,3 +35,31 @@ def get_model(exp_path, model_config):
 
     return model, opt
 
+def plot_model_output(sample, save_name):
+    fig, ((img1, img2), (img3, img4), (img5, img6), (img7, img8)) = plt.subplots(4, 2, figsize=(16, 16))
+
+    img1.set_title("original image")
+    img1.imshow(sample[0][0].permute(1, 2, 0))
+    img1.set_axis_off()
+
+    img2.set_title("model output")
+    img2.imshow(sample[1].permute(1, 2, 0))
+    img2.set_axis_off()
+
+    desired_output_imgs = [img3, img5, img7]
+    actual_output_imgs = [img4, img6, img8]
+
+    for i, img in enumerate(desired_output_imgs):
+        img.set_title("desired output, channel %d" % (i))
+        pos = img.imshow(sample[2][0, i], cmap="gray", vmin=0, vmax=1)
+        img.set_axis_off()
+        fig.colorbar(pos, ax=img)
+
+    for i, img in enumerate(actual_output_imgs):
+        img.set_title("model output, channel %d" % (i))
+        pos = img.imshow(sample[1][i], cmap="gray", vmin=0, vmax=1)
+        img.set_axis_off()
+        fig.colorbar(pos, ax=img)
+
+    plt.savefig(save_name)
+    plt.show()

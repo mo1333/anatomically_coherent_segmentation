@@ -11,6 +11,16 @@
 		"num_res_units": 2,
 		"activation": "PReLU"
 	},
+	"loss_config":
+	{
+		"include_background": False,
+		"sigmoid": True,
+		"softmax": False,
+		"lambda_dice": 1.0,
+		"lambda_ce": 1.0
+	},
+	"evaluate_after_training": True,
+	"cuda_name": "cuda:0",
 	"image_size": [512, 512],
 	"batch_size": 8,
 	"epochs": 100
