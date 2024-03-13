@@ -14,7 +14,7 @@ from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, Sca
 from monai.utils import first
 from torch.utils.data import DataLoader
 
-from evaluate_util import plot_model_output
+from evaluate_util import get_model, plot_model_output
 
 
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
@@ -155,13 +155,14 @@ def train():
 
     if bool(config["evaluate_after_training"]):
         metric = DiceMetric()
+        model, _ = get_model(exp_path, model_config)
 
-        for j, batch in enumerate(train_dataloader):
-            output_images = model(batch[0])
-            plot_model_output((batch[0],
-                               th.sigmoid(output_images[0].detach()),
-                               batch[1]),
-                              exp_path + "model_output.png")
+        img, seg = first(val_dataloader)
+        output_images = model(img)
+        plot_model_output((img,
+                           th.sigmoid(output_images[0].detach()),
+                           seg),
+                          exp_path + "model_output.png")
 
     # --------------
     # --- FINISH ---
