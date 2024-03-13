@@ -80,8 +80,10 @@ def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
         thresh_list = np.arange(0, 1, 0.1)
         m_list = []
         for thresh in thresh_list:
-            m = metric(th.unsqueeze(th.tensor(y_pred[:, j] <= thresh), 1),
-                       th.unsqueeze(y_true[:, j]))
+            y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] <= thresh), 1)
+            y_true_only1channel = th.unsqueeze(y_true[:, j], 1)
+            m = metric(y_pred_only1channel,
+                       y_true_only1channel)
             m_list.append(m)
             if best_metric < m:
                 best_metric = m
