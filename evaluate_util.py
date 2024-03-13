@@ -70,8 +70,8 @@ def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
     y_pred = np.array(y_pred)
 
     channels_of_interest = [1, 2]
-    fig, (plots) = plt.subplots(3,
-                                len(channels_of_interest),
+    fig, (plots) = plt.subplots(len(channels_of_interest),
+                                3,
                                 figsize=(10, 8))
 
     for plot, j in zip(plots, channels_of_interest):
