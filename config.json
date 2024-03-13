@@ -17,7 +17,8 @@
 		"sigmoid": 1,
 		"softmax": 0,
 		"lambda_dice": 1.0,
-		"lambda_ce": 1.0
+		"lambda_ce": 1.0,
+		"lambda_top": 100
 	},
 	"evaluate_after_training": 1,
 	"cuda_name": "cuda:0",

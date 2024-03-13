@@ -15,6 +15,7 @@ from monai.utils import first
 from torch.utils.data import DataLoader
 
 from evaluate_util import get_model, plot_metric_over_thresh, plot_model_output
+from loss import TotalLoss
 
 
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
@@ -103,11 +104,7 @@ def train():
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss = DiceCELoss(sigmoid=bool(loss_config["sigmoid"]),
-                      softmax=bool(loss_config["softmax"]),
-                      lambda_dice=loss_config["lambda_dice"],
-                      lambda_ce=loss_config["lambda_ce"],
-                      include_background=bool(loss_config["include_background"]))
+    loss = TotalLoss(loss_config)
 
     # ----------------
     # --- TRAINING ---
