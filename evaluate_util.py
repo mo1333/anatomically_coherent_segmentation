@@ -68,7 +68,6 @@ def plot_model_output(sample, save_name):
 
 def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
     y_pred = np.array(y_pred)
-    y_true = np.array(y_true)
 
     channels_of_interest = [1, 2]
     fig, (plots) = plt.subplots(2,
@@ -81,7 +80,7 @@ def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
         thresh_list = np.arange(0, 1, 0.1)
         m_list = []
         for thresh in thresh_list:
-            m = metric(y_pred[:, j] <= thresh, y_true[:, j])
+            m = metric(th.tensor(y_pred[:, j] <= thresh), y_true[:, j])
             m_list.append(m)
             if best_metric < m:
                 best_metric = m
