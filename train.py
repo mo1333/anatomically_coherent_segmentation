@@ -156,9 +156,12 @@ def train():
     if bool(config["evaluate_after_training"]):
         metric = DiceMetric()
 
-        img, seg = first(val_dataloader)
-        output_images = model(img)
-        plot_model_output((img, th.sigmoid(output_images[0].detach()), seg), exp_path + "model_output.png")
+        for j, batch in enumerate(train_dataloader):
+            output_images = model(batch[0])
+            plot_model_output((batch[0],
+                               th.sigmoid(output_images[0].detach()),
+                               batch[1]),
+                              exp_path + "model_output.png")
 
     # --------------
     # --- FINISH ---
