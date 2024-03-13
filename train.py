@@ -103,11 +103,11 @@ def train():
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss = DiceCELoss(sigmoid=loss_config["sigmoid"],
-                      softmax=loss_config["softmax"],
+    loss = DiceCELoss(sigmoid=bool(loss_config["sigmoid"]),
+                      softmax=bool(loss_config["softmax"]),
                       lambda_dice=loss_config["lambda_dice"],
                       lambda_ce=loss_config["lambda_ce"],
-                      include_background=loss_config["include_background"])
+                      include_background=bool(loss_config["include_background"]))
 
     # ----------------
     # --- TRAINING ---
@@ -153,7 +153,7 @@ def train():
     # --- EVALUATION ---
     # ------------------
 
-    if config["evaluate_after_training"]:
+    if bool(config["evaluate_after_training"]):
         metric = DiceMetric()
 
         img, seg = first(val_dataloader)
