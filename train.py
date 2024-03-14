@@ -7,12 +7,12 @@ import torch as th
 from ignite.contrib.handlers import ProgressBar
 from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler
-from monai.losses import DiceCELoss
 from monai.metrics import DiceMetric
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
 from monai.utils import first
 from torch.utils.data import DataLoader
+from torch.utils.tensorboard import SummaryWriter
 
 from evaluate_util import get_model, plot_metric_over_thresh, plot_model_output
 from loss import TotalLoss
@@ -113,7 +113,10 @@ def train():
     trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
 
     # Record the loss
-    train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path, output_transform=lambda x: x)
+    writer = SummaryWriter()
+    train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
+                                                              summary_writer=writer,
+                                                              output_transform=lambda x: x)
     train_tensorboard_stats_handler.attach(trainer)
 
     # Save the current model
@@ -164,11 +167,14 @@ def train():
         plot_metric_over_thresh(metric,
                                 th.sigmoid(output_images.detach()),
                                 seg,
+                                writer,
                                 exp_path + "thresh_variation.png")
 
     # --------------
     # --- FINISH ---
     # --------------
+
+    writer.close()
 
     endtime = datetime.now()
     time_diff = endtime - starttime

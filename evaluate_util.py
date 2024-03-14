@@ -66,7 +66,7 @@ def plot_model_output(sample, save_name):
     plt.show()
 
 
-def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
+def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
     y_pred = np.array(y_pred)
 
     channels_of_interest = [1, 2]
@@ -88,6 +88,8 @@ def plot_metric_over_thresh(metric, y_pred, y_true, save_name):
             if best_metric < m:
                 best_metric = m
                 best_thresh = thresh
+        for i in thresh_list:
+            writer.add_scalar("DiceLoss Channel " + str(j), m_list(i), i)
         plot[0].plot(thresh_list, m_list)
         plot[0].set_title("metric over threshold")
 
