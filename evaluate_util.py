@@ -82,8 +82,8 @@ def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
         for thresh in thresh_list:
             y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
             y_true_only1channel = th.unsqueeze(y_true[:, j], 1)
-            m = th.sum(metric(y_pred_only1channel,
-                              y_true_only1channel))
+            m = th.mean(metric(y_pred_only1channel,
+                               y_true_only1channel))
             m_list.append(m)
             if best_metric < m:
                 best_metric = m
@@ -93,7 +93,8 @@ def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
         plot[0].plot(thresh_list, m_list)
         plot[0].set_title("metric over threshold")
 
-        plot[1].imshow(y_pred[0, j] >= best_thresh, cmap="gray") # take the first image in the batch and show thresholded version of model output
+        plot[1].imshow(y_pred[0, j] >= best_thresh,
+                       cmap="gray")  # take the first image in the batch and show thresholded version of model output
         plot[1].set_axis_off()
 
         plot[2].imshow(y_true[0, j], cmap="gray")
