@@ -77,10 +77,10 @@ def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
     for plot, j in zip(plots, channels_of_interest):
         best_metric = -1
         best_thresh = -1
-        thresh_list = np.arange(0, 1, 0.1)
+        thresh_list = np.arange(0, 1, 0.01)
         m_list = []
         for thresh in thresh_list:
-            y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] <= thresh), 1)
+            y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
             y_true_only1channel = th.unsqueeze(y_true[:, j], 1)
             m = th.sum(metric(y_pred_only1channel,
                               y_true_only1channel))
