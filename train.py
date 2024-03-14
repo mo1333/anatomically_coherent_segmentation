@@ -113,7 +113,7 @@ def train():
     trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
 
     # Record the loss
-    writer = SummaryWriter()
+    writer = SummaryWriter(log_dir=exp_path)
     train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
                                                               summary_writer=writer,
                                                               output_transform=lambda x: x)
