@@ -33,7 +33,7 @@ def get_model(exp_path, model_config):
     }
     handler = CheckpointLoader(load_path=exp_path, load_dict=save_dict, map_location="cpu", strict=True)
 
-    return model, opt
+    return handler(model), handler(opt)
 
 
 def plot_model_output(sample, save_name):
@@ -49,6 +49,8 @@ def plot_model_output(sample, save_name):
 
     desired_output_imgs = [img3, img5, img7]
     actual_output_imgs = [img4, img6, img8]
+
+    # TODO use final activation function for output images
 
     for i, img in enumerate(desired_output_imgs):
         img.set_title("desired output, channel %d" % (i))

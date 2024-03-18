@@ -22,7 +22,7 @@
 	},
 	"evaluate_after_training": 1,
 	"cuda_name": "cuda:0",
-	"image_size": [512, 512],
+	"image_size": [32, 32],
 	"batch_size": 8,
 	"epochs": 100
 }

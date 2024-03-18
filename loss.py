@@ -35,13 +35,7 @@ class NaiveTopologyLoss(_Loss):
 
         required input shape: BCWH(D)
         """
-        y = torch.sigmoid(input)
+        y = torch.sigmoid(input) # change to softmax
         diff = y[:, 1] - y[:, 2]
         f = torch.clamp(diff, min=0) # apply elementwise max(x, 0) to diff
         return torch.mean(f)
-
-
-
-
-
-

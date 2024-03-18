@@ -104,7 +104,7 @@ def train():
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss = TotalLoss(loss_config)
+    loss = TotalLoss(loss_config) # TODO: use softmax, not sigmoid, use DICE (or generalized dice, not diceCE)
 
     # ----------------
     # --- TRAINING ---
@@ -152,6 +152,8 @@ def train():
     # ------------------
     # --- EVALUATION ---
     # ------------------
+
+    # TODO: check whether loaded UNET is actually trained
 
     if bool(config["evaluate_after_training"]):
         model, _ = get_model(exp_path, model_config)
