@@ -17,7 +17,6 @@ from torch.utils.tensorboard import SummaryWriter
 from evaluate_util import get_model, plot_metric_over_thresh, plot_model_output
 from loss import TotalLoss
 
-
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
 # and https://github.com/Project-MONAI/tutorials/blob/main/2d_segmentation/torch/unet_training_array.py
 # and https://www.kaggle.com/code/juhha1/simple-model-development-using-monai
@@ -124,7 +123,9 @@ def train():
     trainer.add_event_handler(
         event_name=ignite.engine.Events.EPOCH_COMPLETED,
         handler=checkpoint_handler,
-        to_save={"net": model, "opt": opt},
+        to_save={"trainer": trainer,
+                 "net": model,
+                 "opt": opt}
     )
 
     ProgressBar(persist=False).attach(trainer)
@@ -156,7 +157,7 @@ def train():
     # TODO: check whether loaded UNET is actually trained
 
     if bool(config["evaluate_after_training"]):
-        model, _ = get_model(exp_path, model_config)
+        model, _ = get_model(exp_path, config)
 
         img, seg = first(val_dataloader)
         output_images = model(img)

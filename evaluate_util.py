@@ -1,18 +1,26 @@
+import os.path
+
+import ignite
 import matplotlib.pyplot as plt
 import numpy as np
 import torch as th
 from monai.handlers import CheckpointLoader
 from monai.networks.nets import UNet
 
+from loss import TotalLoss
 
-def get_model(exp_path, model_config):
+
+def get_model(exp_path, config):
     # make sure loading is backwards compatible
+    model_config = config["model_config"]
     if "activation" not in model_config.keys():
         model_config["activation"] = "PReLU"
     if "kernel_size" not in model_config.keys():
         model_config["kernel_size"] = 3
     if "up_kernel_size" not in model_config.keys():
         model_config["up_kernel_size"] = 3
+
+    device = "cpu"
 
     model = UNet(
         spatial_dims=model_config["spatial_dims"],
@@ -31,9 +39,13 @@ def get_model(exp_path, model_config):
         "net": model,
         "opt": opt
     }
-    handler = CheckpointLoader(load_path=exp_path, load_dict=save_dict, map_location="cpu", strict=True)
+    files = os.listdir(exp_path)
+    checkpoint_name = [checkpoint for checkpoint in files if checkpoint.endswith(".pt")][-1]
+    handler = CheckpointLoader(load_path=exp_path + checkpoint_name, load_dict=save_dict, map_location="cpu", strict=True)
 
-    return handler(model), handler(opt)
+    model = handler("net")
+
+    return model, opt
 
 
 def plot_model_output(sample, save_name):
