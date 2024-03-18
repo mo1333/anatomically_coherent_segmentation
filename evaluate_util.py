@@ -13,6 +13,7 @@ from loss import TotalLoss
 def get_model(exp_path, config):
     # make sure loading is backwards compatible
     model_config = config["model_config"]
+    loss_config = config["loss_config"]
     if "activation" not in model_config.keys():
         model_config["activation"] = "PReLU"
     if "kernel_size" not in model_config.keys():
@@ -39,11 +40,15 @@ def get_model(exp_path, config):
         "net": model,
         "opt": opt
     }
+
+    loss = TotalLoss(loss_config)
+
     files = os.listdir(exp_path)
     checkpoint_name = [checkpoint for checkpoint in files if checkpoint.endswith(".pt")][-1]
+    trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
     handler = CheckpointLoader(load_path=exp_path + checkpoint_name, load_dict=save_dict, map_location="cpu", strict=True)
 
-    model = handler("net")
+    handler(trainer)
 
     return model, opt
 

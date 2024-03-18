@@ -13,16 +13,16 @@
 	},
 	"loss_config":
 	{
-		"include_background": 1,
-		"sigmoid": 1,
-		"softmax": 0,
+		"include_background": 0,
+		"sigmoid": 0,
+		"softmax": 1,
 		"lambda_dice": 1.0,
 		"lambda_ce": 1.0,
-		"lambda_top": 100
+		"lambda_top": 0
 	},
 	"evaluate_after_training": 1,
 	"cuda_name": "cuda:0",
-	"image_size": [32, 32],
+	"image_size": [512, 512],
 	"batch_size": 8,
 	"epochs": 100
 }
