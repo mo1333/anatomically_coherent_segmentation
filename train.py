@@ -87,7 +87,7 @@ def train():
         os.makedirs(exp_path)
 
     with open(exp_path + "config.json", "w+") as outfile:
-        json.dump(config, outfile)
+        json.dump(config, outfile, indent=4)
 
     # get all architectural details from config.json
     model = UNet(
@@ -103,7 +103,7 @@ def train():
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss = TotalLoss(loss_config) # TODO: use softmax, not sigmoid, use DICE (or generalized dice, not diceCE)
+    loss = TotalLoss(loss_config)
 
     # ----------------
     # --- TRAINING ---
@@ -154,15 +154,13 @@ def train():
     # --- EVALUATION ---
     # ------------------
 
-    # TODO: check whether loaded UNET is actually trained
-
     if bool(config["evaluate_after_training"]):
         model, _ = get_model(exp_path, config)
 
         img, seg = first(val_dataloader)
         output_images = model(img)
         plot_model_output((img,
-                           th.sigmoid(output_images[0].detach()),
+                           th.nn.functional.softmax(output_images[0].detach(), dim=0),
                            seg),
                           exp_path + "model_output.png")
 
