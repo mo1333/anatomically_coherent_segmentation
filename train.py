@@ -6,7 +6,7 @@ import ignite
 import torch as th
 from ignite.contrib.handlers import ProgressBar
 from monai.data import ArrayDataset
-from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler
+from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler, from_engine
 from monai.metrics import DiceMetric
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
@@ -121,15 +121,12 @@ def train():
     train_tb_stats_handler.attach(trainer)
 
     # Record example output images
-    train_tb_image_handler_ch1 = TensorBoardImageHandler(log_dir=exp_path,
-                                                         summary_writer=writer,
-                                                         output_transform=lambda x: x[:, 1])  # only channel 1
+    train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
+                                                     summary_writer=writer,
+                                                     batch_transform=from_engine(["image", "label"]),
+                                                     output_transform=from_engine(["pred"]))
 
-    train_tb_image_handler_ch2 = TensorBoardImageHandler(log_dir=exp_path,
-                                                         summary_writer=writer,
-                                                         output_transform=lambda x: x[:, 2])  # only channel 2
-    train_tb_image_handler_ch1.attach(trainer)
-    train_tb_image_handler_ch2.attach(trainer)
+    train_tb_image_handler.attach(trainer)
 
     # Save the current model
     checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
