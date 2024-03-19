@@ -113,19 +113,24 @@ def train():
     # --- TRAINING ---
     # ----------------
 
-    trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
+    trainer = ignite.engine.create_supervised_trainer(model,
+                                                      opt,
+                                                      loss,
+                                                      device,
+                                                      False,
+                                                      output_transform=lambda x, y, y_pred, loss: (x, y, y_pred, loss))
     writer = SummaryWriter(log_dir=exp_path)
 
     # Record the loss
     train_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
                                                      summary_writer=writer,
-                                                     output_transform=lambda x: x)
+                                                     output_transform=lambda x, y, y_pred, loss: loss.item())
     train_tb_stats_handler.attach(trainer)
 
     # Record example output images
     train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
                                                      summary_writer=writer,
-                                                     output_transform=lambda x: x)
+                                                     output_transform=lambda lambda x, y, y_pred, loss: y_pred[0])
 
     train_tb_image_handler.attach(trainer)
 
