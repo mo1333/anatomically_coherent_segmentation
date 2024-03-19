@@ -138,10 +138,6 @@ def train():
                  "opt": opt}
     )
 
-    @trainer.on(ignite.engine.Events.EPOCH_COMPLETED(every=1))
-    def validation():
-        print("I am validating while training")
-
     ProgressBar(persist=False).attach(trainer)
     trainer.run(train_dataloader, epochs)
 
