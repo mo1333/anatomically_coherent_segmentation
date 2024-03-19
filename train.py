@@ -118,7 +118,7 @@ def train():
                                                       loss,
                                                       device,
                                                       False,
-                                                      output_transform=lambda output: output)
+                                                      output_transform=lambda x, y, y_pred, loss: x, y, y_pred, loss)
     writer = SummaryWriter(log_dir=exp_path)
 
     # Record the loss
