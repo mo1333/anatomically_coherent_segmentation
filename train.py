@@ -125,7 +125,7 @@ def train():
     # Record example output images
     train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
                                                      summary_writer=writer,
-                                                     output_transform=from_engine(["pred"]))
+                                                     output_transform=lambda x: x)
 
     train_tb_image_handler.attach(trainer)
 
