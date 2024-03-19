@@ -130,7 +130,7 @@ def train():
     # Record example output images
     train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
                                                      summary_writer=writer,
-                                                     output_transform=lambda lambda x, y, y_pred, loss: y_pred[0])
+                                                     output_transform=lambda x, y, y_pred, loss: y_pred[0])
 
     train_tb_image_handler.attach(trainer)
 
