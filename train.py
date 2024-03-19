@@ -6,7 +6,7 @@ import ignite
 import torch as th
 from ignite.contrib.handlers import ProgressBar
 from monai.data import ArrayDataset
-from monai.handlers import TensorBoardStatsHandler
+from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler
 from monai.metrics import DiceMetric
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
@@ -16,6 +16,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 from evaluate_util import get_model, plot_metric_over_thresh, plot_model_output
 from loss import TotalLoss
+
 
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
 # and https://github.com/Project-MONAI/tutorials/blob/main/2d_segmentation/torch/unet_training_array.py
@@ -111,12 +112,24 @@ def train():
 
     trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
 
-    # Record the loss
     writer = SummaryWriter(log_dir=exp_path)
-    train_tensorboard_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
-                                                              summary_writer=writer,
-                                                              output_transform=lambda x: x)
-    train_tensorboard_stats_handler.attach(trainer)
+
+    # Record the loss
+    train_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
+                                                     summary_writer=writer,
+                                                     output_transform=lambda x: x)
+    train_tb_stats_handler.attach(trainer)
+
+    # Record example output images
+    train_tb_image_handler_ch1 = TensorBoardImageHandler(log_dir=exp_path,
+                                                         summary_writer=writer,
+                                                         output_transform=lambda x: x[:, 1])  # only channel 1
+
+    train_tb_image_handler_ch2 = TensorBoardImageHandler(log_dir=exp_path,
+                                                         summary_writer=writer,
+                                                         output_transform=lambda x: x[:, 2])  # only channel 2
+    train_tb_image_handler_ch1.attach(trainer)
+    train_tb_image_handler_ch2.attach(trainer)
 
     # Save the current model
     checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
@@ -127,6 +140,10 @@ def train():
                  "net": model,
                  "opt": opt}
     )
+
+    @trainer.on(ignite.engine.Events.EPOCH_COMPLETED(every=1))
+    def validation():
+        print("I am validating while training")
 
     ProgressBar(persist=False).attach(trainer)
     trainer.run(train_dataloader, epochs)
