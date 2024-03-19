@@ -6,10 +6,12 @@ import ignite
 import torch as th
 from ignite.contrib.handlers import ProgressBar
 from monai.data import ArrayDataset
-from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler, from_engine
+from monai.engines import SupervisedEvaluator, SupervisedTrainer
+from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler, from_engine, StatsHandler, MeanDice, \
+    ValidationHandler
 from monai.metrics import DiceMetric
 from monai.networks.nets import UNet
-from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
+from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity, Activationsd
 from monai.utils import first
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -21,6 +23,7 @@ from loss import TotalLoss
 # following https://github.com/Project-MONAI/tutorials/blob/818673937c9c5d0b0964924b056a867238991a6a/3d_segmentation/unet_segmentation_3d_ignite.ipynb#L102
 # and https://github.com/Project-MONAI/tutorials/blob/main/2d_segmentation/torch/unet_training_array.py
 # and https://www.kaggle.com/code/juhha1/simple-model-development-using-monai
+# https://github.com/Project-MONAI/tutorials/blob/main/modules/batch_output_transform.ipynb
 # https://colab.research.google.com/drive/1wy8XUSnNWlhDNazFdvGBHLfdkGvOHBKe#scrollTo=uHAA3LUxD2b6
 
 
@@ -110,23 +113,52 @@ def train():
     # --- TRAINING ---
     # ----------------
 
-    trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
-
     writer = SummaryWriter(log_dir=exp_path)
 
-    # Record the loss
-    train_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
-                                                     summary_writer=writer,
-                                                     output_transform=lambda x: x)
-    train_tb_stats_handler.attach(trainer)
-
     # Record example output images
-    train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
-                                                     summary_writer=writer,
-                                                     batch_transform=from_engine(["image", "label"]),
-                                                     output_transform=from_engine(["pred"]))
+    val_handlers = [
+        StatsHandler(output_transform=lambda x: None),
+        TensorBoardStatsHandler(log_dir=exp_path, output_transform=lambda x: x),
+        TensorBoardImageHandler(
+            log_dir=exp_path,
+            batch_transform=from_engine(["image", "label"]),
+            output_transform=from_engine(["pred"]),
+        )
+    ]
 
-    train_tb_image_handler.attach(trainer)
+    val_post_transforms = Compose(
+        [
+            Activationsd(keys="pred", sigmoid=loss_config["sigmoid"], softmax=loss_config["softmax"])
+        ]
+    )
+
+    evaluator = SupervisedEvaluator(
+        device=device,
+        val_data_loader=val_dataloader,
+        network=model,
+        postprocessing=val_post_transforms,
+        key_val_metric={
+            "val_mean_dice": MeanDice(include_background=True, output_transform=from_engine(["pred", "label"]))
+        },
+        val_handlers=val_handlers
+    )
+
+    train_handlers = [
+        ValidationHandler(validator=evaluator, interval=1, epoch_level=True),
+        TensorBoardStatsHandler(log_dir=exp_path,
+                                tag_name="train_loss",
+                                output_transform=from_engine(["loss"], first=True))
+    ]
+
+    trainer = SupervisedTrainer(
+        device=device,
+        max_epochs=epochs,
+        train_data_loader=train_dataloader,
+        network=model,
+        optimizer=opt,
+        loss_function=loss,
+        train_handlers=train_handlers
+    )
 
     # Save the current model
     checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
@@ -139,7 +171,7 @@ def train():
     )
 
     ProgressBar(persist=False).attach(trainer)
-    trainer.run(train_dataloader, epochs)
+    trainer.run()
 
     # writer = SummaryWriter(log_dir=exp_path)
     # for epoch in tqdm(range(epochs)):
