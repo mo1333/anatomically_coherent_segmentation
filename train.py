@@ -113,52 +113,22 @@ def train():
     # --- TRAINING ---
     # ----------------
 
+    trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
     writer = SummaryWriter(log_dir=exp_path)
 
+    # Record the loss
+    train_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
+                                                     summary_writer=writer,
+                                                     output_transform=lambda x: x)
+    train_tb_stats_handler.attach(trainer)
+
     # Record example output images
-    val_handlers = [
-        StatsHandler(output_transform=lambda x: None),
-        TensorBoardStatsHandler(log_dir=exp_path, output_transform=lambda x: x),
-        TensorBoardImageHandler(
-            log_dir=exp_path,
-            batch_transform=from_engine(["image", "label"]),
-            output_transform=from_engine(["pred"]),
-        )
-    ]
+    train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
+                                                     summary_writer=writer,
+                                                     batch_transform=from_engine(["image", "label"]),
+                                                     output_transform=from_engine(["pred"]))
 
-    val_post_transforms = Compose(
-        [
-            Activationsd(keys="pred", sigmoid=loss_config["sigmoid"], softmax=loss_config["softmax"])
-        ]
-    )
-
-    evaluator = SupervisedEvaluator(
-        device=device,
-        val_data_loader=val_dataloader,
-        network=model,
-        postprocessing=val_post_transforms,
-        key_val_metric={
-            "val_mean_dice": MeanDice(include_background=True, output_transform=from_engine(["pred", "label"]))
-        },
-        val_handlers=val_handlers
-    )
-
-    train_handlers = [
-        ValidationHandler(validator=evaluator, interval=1, epoch_level=True),
-        TensorBoardStatsHandler(log_dir=exp_path,
-                                tag_name="train_loss",
-                                output_transform=from_engine(["loss"], first=True))
-    ]
-
-    trainer = SupervisedTrainer(
-        device=device,
-        max_epochs=epochs,
-        train_data_loader=train_dataloader,
-        network=model,
-        optimizer=opt,
-        loss_function=loss,
-        train_handlers=train_handlers
-    )
+    train_tb_image_handler.attach(trainer)
 
     # Save the current model
     checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
@@ -170,8 +140,9 @@ def train():
                  "opt": opt}
     )
 
+
     ProgressBar(persist=False).attach(trainer)
-    trainer.run()
+    trainer.run(train_dataloader, epochs)
 
     # writer = SummaryWriter(log_dir=exp_path)
     # for epoch in tqdm(range(epochs)):
