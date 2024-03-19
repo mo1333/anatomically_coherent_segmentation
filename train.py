@@ -6,12 +6,10 @@ import ignite
 import torch as th
 from ignite.contrib.handlers import ProgressBar
 from monai.data import ArrayDataset
-from monai.engines import SupervisedEvaluator, SupervisedTrainer
-from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler, from_engine, StatsHandler, MeanDice, \
-    ValidationHandler
+from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler
 from monai.metrics import DiceMetric
 from monai.networks.nets import UNet
-from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity, Activationsd
+from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
 from monai.utils import first
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
@@ -124,13 +122,14 @@ def train():
     # Record the loss
     train_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
                                                      summary_writer=writer,
-                                                     output_transform=lambda output: output[3].item()) # output[3] = loss
+                                                     tag_name="train loss",
+                                                     output_transform=lambda output: output[3].item())  # output[3] = loss
     train_tb_stats_handler.attach(trainer)
 
     # Record example output images
     train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
                                                      summary_writer=writer,
-                                                     output_transform=lambda output: output[2][0]) # output[2] = y_pred
+                                                     output_transform=lambda output: output[2][0])  # output[2] = y_pred
 
     train_tb_image_handler.attach(trainer)
 
@@ -143,7 +142,6 @@ def train():
                  "net": model,
                  "opt": opt}
     )
-
 
     ProgressBar(persist=False).attach(trainer)
     trainer.run(train_dataloader, epochs)
