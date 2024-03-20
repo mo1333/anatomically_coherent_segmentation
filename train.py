@@ -63,9 +63,9 @@ def train():
     val_image_path = "data/REFUGE2/Validation/Images/"
     val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
 
-    train_data = ArrayDataset(img=[train_image_path + file for file in os.listdir(train_image_path)],
+    train_data = ArrayDataset(img=sorted([train_image_path + file for file in os.listdir(train_image_path)]),
                               img_transform=transformer_train,
-                              seg=[train_dm_path + file for file in os.listdir(train_dm_path)],
+                              seg=sorted([train_dm_path + file for file in os.listdir(train_dm_path)]),
                               seg_transform=transformer_train)
 
     train_dataloader = DataLoader(train_data,
@@ -74,9 +74,9 @@ def train():
                                   num_workers=32,
                                   pin_memory=th.cuda.is_available())
 
-    val_data = ArrayDataset(img=[val_image_path + file for file in os.listdir(val_image_path)],
+    val_data = ArrayDataset(img=sorted([val_image_path + file for file in os.listdir(val_image_path)]),
                             img_transform=transformer_val,
-                            seg=[val_dm_path + file for file in os.listdir(val_dm_path)],
+                            seg=sorted([val_dm_path + file for file in os.listdir(val_dm_path)]),
                             seg_transform=transformer_val)
 
     val_dataloader = DataLoader(val_data,
