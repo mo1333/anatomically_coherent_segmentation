@@ -119,14 +119,32 @@ def train():
                                                       output_transform=lambda x, y, y_pred, loss: (x, y, y_pred, loss))
     writer = SummaryWriter(log_dir=exp_path)
 
-    # Record the loss
+    # Record train loss
     train_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
                                                      summary_writer=writer,
                                                      tag_name="train loss",
                                                      output_transform=lambda output: output[3].item())  # output[3] = loss
     train_tb_stats_handler.attach(trainer)
 
-    # Record example output images
+    # Record validation loss
+    val_metric = {"loss": loss}
+    evaluator = ignite.engine.create_supervised_evaluator(
+        model,
+        val_metric,
+        device,
+        True
+    )
+
+    val_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
+                                                   summary_writer=writer,
+                                                   tag_name="validation loss")
+    val_tb_stats_handler.attach(evaluator)
+
+    @trainer.on(ignite.engine.Events.EPOCH_COMPLETED())
+    def run_intrain_val(engine):
+        evaluator.run(val_dataloader)
+
+    # Record example images from
     train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
                                                      summary_writer=writer,
                                                      output_transform=lambda output: output[2][0])  # output[2] = y_pred
