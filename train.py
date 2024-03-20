@@ -128,7 +128,7 @@ def train():
 
     # Record validation dice metric
     metric = MeanDice()
-    val_metric = {"loss": metric}
+    val_metric = {"score": metric}
     evaluator = ignite.engine.create_supervised_evaluator(
         model,
         val_metric,
