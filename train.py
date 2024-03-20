@@ -205,14 +205,19 @@ def train():
 
         img, seg = first(val_dataloader)
         output_images = model(img)
+        if bool(loss_config["sigmoid"]):
+            y_pred = th.sigmoid(output_images.detach())
+        if bool(loss_config["softmax"]):
+            y_pred = th.softmax(output_images.detach(), dim=1)
+
         plot_model_output((img,
-                           th.nn.functional.softmax(output_images[0].detach(), dim=0),
+                           y_pred[0],
                            seg),
                           exp_path + "model_output.png")
 
         metric = DiceMetric()
         plot_metric_over_thresh(metric,
-                                th.sigmoid(output_images.detach()),
+                                y_pred,
                                 seg,
                                 writer,
                                 exp_path + "thresh_variation.png")
