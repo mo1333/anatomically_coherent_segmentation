@@ -170,7 +170,7 @@ def train():
     for epoch in tqdm(range(epochs)):
         model.train()
         step = 0
-        for batch_data in train_dataloader:
+        for batch_data in tqdm(train_dataloader, leave=True):
             step += 1
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             opt.zero_grad()
@@ -189,8 +189,8 @@ def train():
             loss = loss_func(outputs, labels)
             val_loss += loss.item()
         writer.add_scalar("validation loss", val_loss, epoch)
-        writer.add_image("sample output channel 1", outputs[0, 1])
-        writer.add_image("sample output channel 2", outputs[0, 2])
+        writer.add_image("sample output channel 1", outputs[0, 1], dataformats="HW")
+        writer.add_image("sample output channel 2", outputs[0, 2], dataformats="HW")
 
 
     writer.close()
