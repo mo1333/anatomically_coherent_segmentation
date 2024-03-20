@@ -52,6 +52,26 @@ def get_model(exp_path, config):
 
     return model, opt
 
+def get_model2(exp_path, config):
+    model_config = config["model_config"]
+    model = UNet(
+        spatial_dims=model_config["spatial_dims"],
+        in_channels=model_config["in_channels"],
+        out_channels=model_config["out_channels"],
+        channels=model_config["channels"],
+        strides=model_config["strides"],
+        kernel_size=model_config["kernel_size"],
+        up_kernel_size=model_config["up_kernel_size"],
+        num_res_units=model_config["num_res_units"],
+        act=model_config["activation"]
+    )
+
+    model.load_state_dict(th.load(exp_path+"model.pt"))
+    model.eval()
+
+    return model
+
+
 
 def plot_model_output(sample, save_name):
     fig, ((img1, img2), (img3, img4), (img5, img6), (img7, img8)) = plt.subplots(4, 2, figsize=(16, 16))

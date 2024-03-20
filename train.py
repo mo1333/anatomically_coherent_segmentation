@@ -1,7 +1,7 @@
 import json
 import os
 from datetime import datetime
-from tqdm import tqdm
+from tqdm.auto import tqdm
 
 import ignite
 import torch as th
@@ -15,7 +15,7 @@ from monai.utils import first
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from evaluate_util import get_model, plot_metric_over_thresh, plot_model_output
+from evaluate_util import get_model2, plot_metric_over_thresh, plot_model_output
 from loss import TotalLoss
 
 
@@ -167,10 +167,10 @@ def train():
     # trainer.run(train_dataloader, epochs)
 
     writer = SummaryWriter(log_dir=exp_path)
-    for epoch in tqdm(range(epochs)):
+    for epoch in tqdm(range(epochs), desc="Epochs", leave=True):
         model.train()
         step = 0
-        for batch_data in tqdm(train_dataloader, leave=True):
+        for batch_data in tqdm(train_dataloader, desc="Batches", leave=False):
             step += 1
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             opt.zero_grad()
@@ -192,6 +192,7 @@ def train():
         writer.add_image("sample output channel 1", outputs[0, 1], dataformats="HW")
         writer.add_image("sample output channel 2", outputs[0, 2], dataformats="HW")
 
+    th.save(model.state_dict(), exp_path+"model.pt")
 
     writer.close()
 
@@ -200,7 +201,7 @@ def train():
     # ------------------
 
     if bool(config["evaluate_after_training"]):
-        model, _ = get_model(exp_path, config)
+        model = get_model2(exp_path, config)
 
         img, seg = first(val_dataloader)
         output_images = model(img)
