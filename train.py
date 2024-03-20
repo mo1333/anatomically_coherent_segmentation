@@ -7,7 +7,7 @@ import torch as th
 from ignite.contrib.handlers import ProgressBar
 from monai.data import ArrayDataset
 from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler
-from monai.metrics import DiceMetric
+from monai.metrics import DiceMetric, LossMetric
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
 from monai.utils import first
@@ -127,7 +127,8 @@ def train():
     train_tb_stats_handler.attach(trainer)
 
     # Record validation loss
-    val_metric = {"loss": loss}
+    loss_metric = LossMetric(loss_fn=loss)
+    val_metric = {"loss": loss_metric}
     evaluator = ignite.engine.create_supervised_evaluator(
         model,
         val_metric,
