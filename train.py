@@ -6,7 +6,7 @@ import ignite
 import torch as th
 from ignite.contrib.handlers import ProgressBar
 from monai.data import ArrayDataset
-from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler
+from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler, MeanDice
 from monai.metrics import DiceMetric, LossMetric
 from monai.networks.nets import UNet
 from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
@@ -127,7 +127,7 @@ def train():
     train_tb_stats_handler.attach(trainer)
 
     # Record validation dice metric
-    metric = DiceMetric()
+    metric = MeanDice()
     val_metric = {"loss": metric}
     evaluator = ignite.engine.create_supervised_evaluator(
         model,
@@ -198,6 +198,7 @@ def train():
                            seg),
                           exp_path + "model_output.png")
 
+        metric = DiceMetric()
         plot_metric_over_thresh(metric,
                                 th.sigmoid(output_images.detach()),
                                 seg,
