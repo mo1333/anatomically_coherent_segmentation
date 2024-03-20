@@ -126,9 +126,9 @@ def train():
                                                      output_transform=lambda output: output[3].item())  # output[3] = loss
     train_tb_stats_handler.attach(trainer)
 
-    # Record validation loss
-    loss_metric = LossMetric(loss_fn=loss)
-    val_metric = {"loss": loss_metric}
+    # Record validation dice metric
+    metric = DiceMetric()
+    val_metric = {"loss": metric}
     evaluator = ignite.engine.create_supervised_evaluator(
         model,
         val_metric,
@@ -198,7 +198,6 @@ def train():
                            seg),
                           exp_path + "model_output.png")
 
-        metric = DiceMetric()
         plot_metric_over_thresh(metric,
                                 th.sigmoid(output_images.detach()),
                                 seg,
