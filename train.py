@@ -192,7 +192,7 @@ def train():
         writer.add_image("sample output channel 1", outputs[0, 1], global_step=epoch, dataformats="HW")
         writer.add_image("sample output channel 2", outputs[0, 2], global_step=epoch, dataformats="HW")
 
-    th.save(model.state_dict(), exp_path+"model.pt")
+    th.save(model.state_dict(), exp_path + "model.pt")
 
     writer.close()
 
