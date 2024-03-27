@@ -71,7 +71,7 @@ def train():
     train_dataloader = DataLoader(train_data,
                                   batch_size=batch_size,
                                   shuffle=True,
-                                  num_workers=32,
+                                  num_workers=4,
                                   pin_memory=th.cuda.is_available())
 
     val_data = ArrayDataset(img=sorted([val_image_path + file for file in os.listdir(val_image_path)]),
@@ -82,7 +82,7 @@ def train():
     val_dataloader = DataLoader(val_data,
                                 batch_size=batch_size,
                                 shuffle=False,
-                                num_workers=32,
+                                num_workers=4,
                                 pin_memory=th.cuda.is_available())
 
     if not os.path.exists(exp_path):
