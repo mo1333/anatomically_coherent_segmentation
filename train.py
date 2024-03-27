@@ -44,18 +44,17 @@ def train():
 
     epochs = config["epochs"]
     batch_size = config["batch_size"]
-    image_size = config["image_size"]  # make smaller to use on Laptop
     exp_path = "experiments/" + now_str + "/"
+
+    config["timestamp"] = now_str
 
     transformer_train = Compose([LoadImage(image_only=True),
                                  EnsureChannelFirst(),
-                                 ScaleIntensity(),
-                                 Resize(image_size)])
+                                 ScaleIntensity()])
 
     transformer_val = Compose([LoadImage(image_only=True),
                                EnsureChannelFirst(),
-                               ScaleIntensity(),
-                               Resize(image_size)])
+                               ScaleIntensity()])
 
     train_image_path = "data/REFUGE2/Train/Images/"
     train_dm_path = "data/REFUGE2/Train/Disc_Masks/"

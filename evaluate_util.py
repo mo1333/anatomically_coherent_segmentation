@@ -46,11 +46,13 @@ def get_model(exp_path, config):
     files = os.listdir(exp_path)
     checkpoint_name = [checkpoint for checkpoint in files if checkpoint.endswith(".pt")][-1]
     trainer = ignite.engine.create_supervised_trainer(model, opt, loss, device, False)
-    handler = CheckpointLoader(load_path=exp_path + checkpoint_name, load_dict=save_dict, map_location="cpu", strict=True)
+    handler = CheckpointLoader(load_path=exp_path + checkpoint_name, load_dict=save_dict, map_location="cpu",
+                               strict=True)
 
     handler(trainer)
 
     return model, opt
+
 
 def get_model2(exp_path, config):
     model_config = config["model_config"]
@@ -66,11 +68,10 @@ def get_model2(exp_path, config):
         act=model_config["activation"]
     )
 
-    model.load_state_dict(th.load(exp_path+"model.pt"))
+    model.load_state_dict(th.load(exp_path + "model.pt"))
     model.eval()
 
     return model
-
 
 
 def plot_model_output(sample, save_name):
