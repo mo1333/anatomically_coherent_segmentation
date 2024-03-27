@@ -18,7 +18,8 @@ class TotalLoss(_Loss):
                                      include_background=bool(loss_config["include_background"]))
 
         self.topologyLoss = NaiveTopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
-                                              softmax=bool(loss_config["softmax"]))
+                                              softmax=bool(loss_config["softmax"]),
+                                              post_func=loss_config["post_func"])
         self.loss_config = loss_config
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
@@ -26,10 +27,11 @@ class TotalLoss(_Loss):
 
 
 class NaiveTopologyLoss(_Loss):
-    def __init__(self, sigmoid, softmax):
+    def __init__(self, sigmoid, softmax, post_func):
         super().__init__()
         self.sigmoid = sigmoid
         self.softmax = softmax
+        self.post_func = post_func
 
     def forward(self, input: torch.Tensor) -> torch.Tensor:
         """
@@ -38,10 +40,18 @@ class NaiveTopologyLoss(_Loss):
 
         required input shape: BCWH(D)
         """
+
+        func_dict = {"": None,
+                     "square": torch.square,
+                     "exp": torch.exp,
+                     "log": torch.log}
+
         if self.sigmoid:
             y = torch.sigmoid(input)
         if self.softmax:
             y = torch.softmax(input, dim=1)
         diff = y[:, 1] - y[:, 2]
         f = torch.clamp(diff, min=0)  # apply elementwise max(x, 0) to diff
+        if func_dict[self.post_func]:
+            f = func_dict[self.post_func](f)
         return torch.mean(f)
