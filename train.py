@@ -44,7 +44,7 @@ def train():
 
     epochs = config["epochs"]
     batch_size = config["batch_size"]
-    exp_path = "experiments/" + now_str + "/"
+    exp_path = "experiments/" + now_str + "_" + config["experiment_name"] + "/"
 
     config["timestamp"] = now_str
 
@@ -71,7 +71,7 @@ def train():
     train_dataloader = DataLoader(train_data,
                                   batch_size=batch_size,
                                   shuffle=True,
-                                  num_workers=4,
+                                  num_workers=12,
                                   pin_memory=th.cuda.is_available())
 
     val_data = ArrayDataset(img=sorted([val_image_path + file for file in os.listdir(val_image_path)]),
@@ -82,7 +82,7 @@ def train():
     val_dataloader = DataLoader(val_data,
                                 batch_size=batch_size,
                                 shuffle=False,
-                                num_workers=4,
+                                num_workers=12,
                                 pin_memory=th.cuda.is_available())
 
     if not os.path.exists(exp_path):
