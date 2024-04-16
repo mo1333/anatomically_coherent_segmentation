@@ -20,5 +20,5 @@ for percentage in percentages:
 
 joined_frame = [[perc, m[0], m[1]] for perc, m in zip(percentages, best_metric_per_percentage)]
 output_frame = pd.DataFrame(joined_frame, columns=['percentage', 'optic_cup_performance', 'optic_disc_performance'])
-output_frame.to_csv(experiment_name + "/simulated_data_shortage_output.csv")
+output_frame.to_csv("experiments/" + experiment_name + "/simulated_data_shortage_output.csv")
 
