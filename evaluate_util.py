@@ -112,6 +112,8 @@ def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
                                 3,
                                 figsize=(10, 8))
 
+    best_metric_per_channel = []
+
     for plot, j in zip(plots, channels_of_interest):
         best_metric = -1
         best_thresh = -1
@@ -126,6 +128,8 @@ def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
             if best_metric < m:
                 best_metric = m
                 best_thresh = thresh
+
+        best_metric_per_channel.append(best_metric)
         for i in range(len(list(thresh_list))):
             writer.add_scalar("Dice Score Channel " + str(j), m_list[i], i)
         plot[0].plot(thresh_list, m_list)
@@ -139,3 +143,7 @@ def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
         plot[2].set_axis_off()
     plt.savefig(save_name)
     plt.show()
+
+    return best_metric_per_channel
+
+

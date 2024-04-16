@@ -47,6 +47,8 @@ def train(config=None):
     epochs = config["epochs"]
     batch_size = config["batch_size"]
     exp_path = "experiments/" + now_str + "_" + config["experiment_name"] + "/"
+    if len(config["overwrite_exp_path"]) > 0:
+        exp_path = "experiments/" + config["overwrite_exp_path"] + "/"
 
     config["timestamp"] = now_str
 
@@ -71,8 +73,8 @@ def train(config=None):
     # when specified in config, we only use a certain percentage of training data for training
     if config["perc_data_used"] < 1.0:
         used_indices = np.random.choice(len(train_file_names_img),
-                                         size=int(len(train_file_names_img)*config["perc_data_used"]),
-                                         replace=False)
+                                        size=int(len(train_file_names_img) * config["perc_data_used"]),
+                                        replace=False)
         train_file_names_img = [file for i, file in enumerate(train_file_names_img) if i in used_indices]
         train_file_names_seg = [file for i, file in enumerate(train_file_names_seg) if i in used_indices]
 
@@ -227,12 +229,13 @@ def train(config=None):
                            seg),
                           exp_path + "model_output.png")
 
+        # TODO: change so that all validation samples are used for validation
         metric = DiceMetric()
-        plot_metric_over_thresh(metric,
-                                y_pred,
-                                seg,
-                                writer,
-                                exp_path + "thresh_variation.png")
+        best_metric_per_channel = plot_metric_over_thresh(metric,
+                                                          y_pred,
+                                                          seg,
+                                                          writer,
+                                                          exp_path + "thresh_variation.png")
 
     # --------------
     # --- FINISH ---
@@ -246,6 +249,8 @@ def train(config=None):
     minutes = divmod(hours[1], 60)
     seconds = divmod(minutes[1], 1)
     print("Training+Evaluation took %d:%d:%d" % (hours[0], minutes[0], seconds[0]))
+
+    return best_metric_per_channel
 
 
 if __name__ == "__main__":

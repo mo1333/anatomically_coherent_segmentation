@@ -1,6 +1,7 @@
 {
 	"timestamp": "",
 	"experiment_name": "",
+	"overwrite_exp_path": "",
 	"model_config": 
 	{
 		"spatial_dims": 2, 
