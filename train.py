@@ -3,6 +3,7 @@ import os
 from datetime import datetime
 from tqdm.auto import tqdm
 
+import numpy as np
 import ignite
 import torch as th
 from ignite.contrib.handlers import ProgressBar
@@ -26,7 +27,7 @@ from loss import TotalLoss
 # https://colab.research.google.com/drive/1wy8XUSnNWlhDNazFdvGBHLfdkGvOHBKe#scrollTo=uHAA3LUxD2b6
 
 
-def train():
+def train(config=None):
     starttime = datetime.now()
     now_str = starttime.strftime("%Y_%m_%d__%H_%M_%S")
 
@@ -34,8 +35,9 @@ def train():
     # --- SETUP ---
     # -------------
 
-    with open("config.json", 'r') as file:
-        config = json.load(file)
+    if not config:
+        with open("config.json", 'r') as file:
+            config = json.load(file)
 
     device = th.device(config["cuda_name"] if th.cuda.is_available() else "cpu")
 
@@ -63,9 +65,20 @@ def train():
     val_image_path = "data/REFUGE2/Validation/Images/"
     val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
 
-    train_data = ArrayDataset(img=sorted([train_image_path + file for file in os.listdir(train_image_path)]),
+    train_file_names_img = sorted([train_image_path + file for file in os.listdir(train_image_path)])
+    train_file_names_seg = sorted([train_dm_path + file for file in os.listdir(train_dm_path)])
+
+    # when specified in config, we only use a certain percentage of training data for training
+    if config["perc_data_used"] < 1.0:
+        used_indices = np.random.choice(len(train_file_names_img),
+                                         size=int(len(train_file_names_img)*config["perc_data_used"]),
+                                         replace=False)
+        train_file_names_img = [file for i, file in enumerate(train_file_names_img) if i in used_indices]
+        train_file_names_seg = [file for i, file in enumerate(train_file_names_seg) if i in used_indices]
+
+    train_data = ArrayDataset(img=train_file_names_img,
                               img_transform=transformer_train,
-                              seg=sorted([train_dm_path + file for file in os.listdir(train_dm_path)]),
+                              seg=train_file_names_seg,
                               seg_transform=transformer_train)
 
     train_dataloader = DataLoader(train_data,
