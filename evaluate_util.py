@@ -118,7 +118,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
     for plot, j in zip(plots, channels_of_interest):
         best_metric = -1
         best_thresh = -1
-        thresh_list = np.linspace(0, 1, 5)
+        thresh_list = np.linspace(0, 1, 100)
         m_list = []
         for thresh in thresh_list:
             m = 0
