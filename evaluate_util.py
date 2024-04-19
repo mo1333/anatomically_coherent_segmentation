@@ -104,9 +104,8 @@ def plot_model_output(sample, save_name):
     plt.show()
 
 
-def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
-    y_pred = np.array(y_pred)
-
+def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_name):
+    loss_config = config["loss_config"]
     channels_of_interest = [1, 2]
     fig, (plots) = plt.subplots(len(channels_of_interest),
                                 3,
@@ -120,10 +119,22 @@ def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
         thresh_list = np.arange(0, 1, 0.01)
         m_list = []
         for thresh in thresh_list:
-            y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
-            y_true_only1channel = th.unsqueeze(y_true[:, j], 1)
-            m = th.mean(metric(y_pred_only1channel,
-                               y_true_only1channel))
+            m = 0
+            counter = 0
+            for batch_data in val_dataloader:
+                inputs, labels = batch_data[0], batch_data[1]
+                outputs = model(inputs)
+                if bool(loss_config["sigmoid"]):
+                    y_pred = th.sigmoid(outputs)
+                if bool(loss_config["softmax"]):
+                    y_pred = th.softmax(outputs, dim=1)
+                y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
+                y_true_only1channel = th.unsqueeze(labels[:, j], 1)
+                m += th.mean(metric(y_pred_only1channel,
+                                    y_true_only1channel))
+                counter += 1
+            m = m / counter  # get the mean instead of sum for easy to interpret average metric
+
             m_list.append(m)
             if best_metric < m:
                 best_metric = m
@@ -139,11 +150,9 @@ def plot_metric_over_thresh(metric, y_pred, y_true, writer, save_name):
                        cmap="gray")  # take the first image in the batch and show thresholded version of model output
         plot[1].set_axis_off()
 
-        plot[2].imshow(y_true[0, j], cmap="gray")
+        plot[2].imshow(labels[0, j], cmap="gray")
         plot[2].set_axis_off()
     plt.savefig(save_name)
     plt.show()
 
     return best_metric_per_channel
-
-
