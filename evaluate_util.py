@@ -1,5 +1,6 @@
 import os.path
 
+from tqdm.auto import tqdm
 import ignite
 import matplotlib.pyplot as plt
 import numpy as np
@@ -120,7 +121,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         best_thresh = -1
         thresh_list = np.linspace(0, 1, 100)
         m_list = []
-        for thresh in thresh_list:
+        for thresh in tqdm(thresh_list, desc="Finding threshold for channel %d" % j, leave=False):
             m = 0
             counter = 0
             for batch_data in val_dataloader:
