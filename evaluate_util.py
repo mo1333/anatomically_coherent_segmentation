@@ -116,18 +116,18 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
     for plot, j in zip(plots, channels_of_interest):
         best_metric = -1
         best_thresh = -1
-        thresh_list = np.arange(0, 1, 0.01)
+        thresh_list = np.linspace(0, 1, 5)
         m_list = []
         for thresh in thresh_list:
             m = 0
             counter = 0
             for batch_data in val_dataloader:
                 inputs, labels = batch_data[0], batch_data[1]
-                outputs = model(inputs)
+                y_pred = model(inputs)
                 if bool(loss_config["sigmoid"]):
-                    y_pred = th.sigmoid(outputs)
+                    y_pred = th.sigmoid(y_pred)
                 if bool(loss_config["softmax"]):
-                    y_pred = th.softmax(outputs, dim=1)
+                    y_pred = th.softmax(y_pred, dim=1)
                 y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
                 y_true_only1channel = th.unsqueeze(labels[:, j], 1)
                 m += th.mean(metric(y_pred_only1channel,

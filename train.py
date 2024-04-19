@@ -229,7 +229,6 @@ def train(config=None):
                            seg),
                           exp_path + "model_output.png")
 
-        # TODO: change so that all validation samples are used for validation
         metric = DiceMetric()
         best_metric_per_channel = plot_metric_over_thresh(config,
                                                           metric,
