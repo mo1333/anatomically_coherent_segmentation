@@ -121,23 +121,29 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         best_thresh = -1
         thresh_list = np.linspace(0, 1, 100)
         m_list = []
+        y_pred = []
+        y_true = []
+        for batch_data in val_dataloader:
+            inputs, labels = batch_data[0].to(device), batch_data[1]
+            output = device_model(inputs)
+            if bool(loss_config["sigmoid"]):
+                output = th.sigmoid(output)
+            if bool(loss_config["softmax"]):
+                output = th.softmax(output, dim=1)
+            y_pred.append(output.detach().cpu().numpy())
+            y_true.append(labels.numpy())
+
+        y_pred = np.array(y_pred)
+        y_pred = np.vstack(y_pred)  # merge all batches to get (#samples, 512, 512) as shape
+        y_true = np.array(y_true)
+        y_true = np.vstack(y_true)
         for thresh in tqdm(thresh_list, desc="Finding threshold for channel %d" % j, leave=False):
             m = 0
-            counter = 0
-            for batch_data in val_dataloader:
-                inputs, labels = batch_data[0].to(device), batch_data[1]
-                output = device_model(inputs)
-                if bool(loss_config["sigmoid"]):
-                    output = th.sigmoid(output)
-                if bool(loss_config["softmax"]):
-                    output = th.softmax(output, dim=1)
-                y_pred = output.detach().cpu().numpy()
-                y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
-                y_true_only1channel = th.unsqueeze(labels[:, j], 1)
-                m += th.mean(metric(y_pred_only1channel,
-                                    y_true_only1channel))
-                counter += 1
-            m = m / counter  # get the mean instead of sum for easy to interpret average metric
+
+            y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
+            y_true_only1channel = th.unsqueeze(th.tensor(y_true[:, j]), 1)
+            m += th.mean(metric(y_pred_only1channel,
+                                y_true_only1channel))
             m_list.append(m)
             if best_metric < m:
                 best_metric = m
