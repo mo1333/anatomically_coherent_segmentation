@@ -235,7 +235,8 @@ def train(config=None):
                                                           model,
                                                           val_dataloader,
                                                           writer,
-                                                          exp_path + "thresh_variation.png")
+                                                          exp_path + "thresh_variation.png",
+                                                          device)
 
     # --------------
     # --- FINISH ---

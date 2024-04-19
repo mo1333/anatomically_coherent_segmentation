@@ -104,8 +104,10 @@ def plot_model_output(sample, save_name):
     plt.show()
 
 
-def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_name):
+def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_name, device=th.device("cpu")):
     loss_config = config["loss_config"]
+    device_model = model.to(device)
+
     channels_of_interest = [1, 2]
     fig, (plots) = plt.subplots(len(channels_of_interest),
                                 3,
@@ -122,8 +124,8 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
             m = 0
             counter = 0
             for batch_data in val_dataloader:
-                inputs, labels = batch_data[0], batch_data[1]
-                y_pred = model(inputs)
+                inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
+                y_pred = device_model(inputs)
                 if bool(loss_config["sigmoid"]):
                     y_pred = th.sigmoid(y_pred)
                 if bool(loss_config["softmax"]):
