@@ -137,7 +137,6 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
                                     y_true_only1channel))
                 counter += 1
             m = m / counter  # get the mean instead of sum for easy to interpret average metric
-
             m_list.append(m)
             if best_metric < m:
                 best_metric = m
