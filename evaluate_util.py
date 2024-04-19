@@ -125,11 +125,12 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
             counter = 0
             for batch_data in val_dataloader:
                 inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
-                y_pred = device_model(inputs)
+                output = device_model(inputs)
                 if bool(loss_config["sigmoid"]):
-                    y_pred = th.sigmoid(y_pred)
+                    output = th.sigmoid(output)
                 if bool(loss_config["softmax"]):
-                    y_pred = th.softmax(y_pred, dim=1)
+                    output = th.softmax(output, dim=1)
+                y_pred = output.cpu()
                 y_pred_only1channel = th.unsqueeze(th.tensor(np.array(y_pred[:, j]) >= thresh), 1)
                 y_true_only1channel = th.unsqueeze(labels[:, j], 1)
                 m += th.mean(metric(y_pred_only1channel,
