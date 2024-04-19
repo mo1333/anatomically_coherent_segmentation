@@ -124,7 +124,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
             m = 0
             counter = 0
             for batch_data in val_dataloader:
-                inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
+                inputs, labels = batch_data[0].to(device), batch_data[1]
                 output = device_model(inputs)
                 if bool(loss_config["sigmoid"]):
                     output = th.sigmoid(output)
