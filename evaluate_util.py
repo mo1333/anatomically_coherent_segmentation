@@ -130,8 +130,8 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
                     output = th.sigmoid(output)
                 if bool(loss_config["softmax"]):
                     output = th.softmax(output, dim=1)
-                y_pred = output.cpu()
-                y_pred_only1channel = th.unsqueeze(th.tensor(np.array(y_pred[:, j]) >= thresh), 1)
+                y_pred = output.detach().numpy()
+                y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
                 y_true_only1channel = th.unsqueeze(labels[:, j], 1)
                 m += th.mean(metric(y_pred_only1channel,
                                     y_true_only1channel))
