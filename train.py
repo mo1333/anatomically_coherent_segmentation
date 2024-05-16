@@ -81,13 +81,13 @@ def train(config=None):
     # --- TRAINING ---
     # ----------------
 
-    trn_dl = train_dataloader()
-    val_dl = val_dataloader()
-    tst_dl = test_dataloader()
+    trn_dl = train_dataloader
+    val_dl = val_dataloader
+    tst_dl = test_dataloader
     if polar:
-        trn_dl = train_polar_dataloader()
-        val_dl = val_polar_dataloader()
-        tst_dl = test_polar_dataloader()
+        trn_dl = train_polar_dataloader
+        val_dl = val_polar_dataloader
+        tst_dl = test_polar_dataloader
 
     writer = SummaryWriter(log_dir=exp_path)
     for epoch in tqdm(range(epochs), desc="Epochs", leave=True):
