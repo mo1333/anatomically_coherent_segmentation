@@ -17,6 +17,7 @@ from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from evaluate_util import get_model2, plot_metric_over_thresh, plot_model_output
+from train_util import dataloader_setup
 from loss import TotalLoss
 
 
@@ -45,60 +46,14 @@ def train(config=None):
     loss_config = config["loss_config"]
 
     epochs = config["epochs"]
-    batch_size = config["batch_size"]
+    polar = config["polar_data_used"]
     exp_path = "experiments/" + now_str + "_" + config["experiment_name"] + "/"
     if len(config["overwrite_exp_path"]) > 0:
         exp_path = "experiments/" + config["overwrite_exp_path"] + "/"
 
     config["timestamp"] = now_str
 
-    transformer_train = Compose([LoadImage(image_only=True),
-                                 EnsureChannelFirst(),
-                                 ScaleIntensity()])
-
-    transformer_val = Compose([LoadImage(image_only=True),
-                               EnsureChannelFirst(),
-                               ScaleIntensity()])
-
-    train_image_path = "data/REFUGE2/Train/Images/"
-    train_dm_path = "data/REFUGE2/Train/Disc_Masks/"
-    test_image_path = "data/REFUGE2/Test/Images/"
-    test_dm_path = "data/REFUGE2/Test/Disc_Masks/"
-    val_image_path = "data/REFUGE2/Validation/Images/"
-    val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
-
-    train_file_names_img = sorted([train_image_path + file for file in os.listdir(train_image_path)])
-    train_file_names_seg = sorted([train_dm_path + file for file in os.listdir(train_dm_path)])
-
-    # when specified in config, we only use a certain percentage of training data for training
-    if config["perc_data_used"] < 1.0:
-        used_indices = np.random.choice(len(train_file_names_img),
-                                        size=int(len(train_file_names_img) * config["perc_data_used"]),
-                                        replace=False)
-        train_file_names_img = [file for i, file in enumerate(train_file_names_img) if i in used_indices]
-        train_file_names_seg = [file for i, file in enumerate(train_file_names_seg) if i in used_indices]
-
-    train_data = ArrayDataset(img=train_file_names_img,
-                              img_transform=transformer_train,
-                              seg=train_file_names_seg,
-                              seg_transform=transformer_train)
-
-    train_dataloader = DataLoader(train_data,
-                                  batch_size=batch_size,
-                                  shuffle=True,
-                                  num_workers=12,
-                                  pin_memory=th.cuda.is_available())
-
-    val_data = ArrayDataset(img=sorted([val_image_path + file for file in os.listdir(val_image_path)]),
-                            img_transform=transformer_val,
-                            seg=sorted([val_dm_path + file for file in os.listdir(val_dm_path)]),
-                            seg_transform=transformer_val)
-
-    val_dataloader = DataLoader(val_data,
-                                batch_size=batch_size,
-                                shuffle=False,
-                                num_workers=12,
-                                pin_memory=th.cuda.is_available())
+    train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader = dataloader_setup(config)
 
     if not os.path.exists(exp_path):
         os.makedirs(exp_path)
@@ -126,65 +81,19 @@ def train(config=None):
     # --- TRAINING ---
     # ----------------
 
-    # trainer = ignite.engine.create_supervised_trainer(model,
-    #                                                   opt,
-    #                                                   loss,
-    #                                                   device,
-    #                                                   False,
-    #                                                   output_transform=lambda x, y, y_pred, loss: (x, y, y_pred, loss))
-    # writer = SummaryWriter(log_dir=exp_path)
-    #
-    # # Record train loss
-    # train_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
-    #                                                  summary_writer=writer,
-    #                                                  tag_name="train loss",
-    #                                                  output_transform=lambda output: output[3].item())  # output[3] = loss
-    # train_tb_stats_handler.attach(trainer)
-    #
-    # # Record validation dice metric
-    # metric = MeanDice()
-    # val_metric = {"validation score": metric}
-    # evaluator = ignite.engine.create_supervised_evaluator(
-    #     model,
-    #     val_metric,
-    #     device,
-    #     True
-    # )
-    #
-    # val_tb_stats_handler = TensorBoardStatsHandler(log_dir=exp_path,
-    #                                                summary_writer=writer,
-    #                                                tag_name="validation loss")
-    # val_tb_stats_handler.attach(evaluator)
-    #
-    # @trainer.on(ignite.engine.Events.EPOCH_COMPLETED())
-    # def run_intrain_val(engine):
-    #     evaluator.run(val_dataloader)
-    #
-    # # Record example images from
-    # train_tb_image_handler = TensorBoardImageHandler(log_dir=exp_path,
-    #                                                  summary_writer=writer,
-    #                                                  output_transform=lambda output: output[2][0])  # output[2] = y_pred
-    #
-    # train_tb_image_handler.attach(trainer)
-    #
-    # # Save the current model
-    # checkpoint_handler = ignite.handlers.ModelCheckpoint(exp_path, "net", n_saved=1, require_empty=False)
-    # trainer.add_event_handler(
-    #     event_name=ignite.engine.Events.EPOCH_COMPLETED,
-    #     handler=checkpoint_handler,
-    #     to_save={"trainer": trainer,
-    #              "net": model,
-    #              "opt": opt}
-    # )
-    #
-    # ProgressBar(persist=False).attach(trainer)
-    # trainer.run(train_dataloader, epochs)
+    trn_dl = train_dataloader()
+    val_dl = val_dataloader()
+    tst_dl = test_dataloader()
+    if polar:
+        trn_dl = train_polar_dataloader()
+        val_dl = val_polar_dataloader()
+        tst_dl = test_polar_dataloader()
 
     writer = SummaryWriter(log_dir=exp_path)
     for epoch in tqdm(range(epochs), desc="Epochs", leave=True):
         model.train()
         step = 0
-        for batch_data in tqdm(train_dataloader, desc="Batches", leave=False):
+        for batch_data in tqdm(trn_dl, desc="Batches", leave=False):
             step += 1
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             opt.zero_grad()
@@ -192,12 +101,12 @@ def train(config=None):
             loss = loss_func(outputs, labels)
             loss.backward()
             opt.step()
-            epoch_len = len(train_data) // train_dataloader.batch_size
+            epoch_len = len(trn_dl.dataset) // trn_dl.batch_size
             writer.add_scalar("train loss", loss.item(), epoch_len * epoch + step)
 
         model.eval()
         val_loss = 0
-        for batch_data in val_dataloader:
+        for batch_data in val_dl:
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             outputs = model(inputs)
             loss = loss_func(outputs, labels)
@@ -217,7 +126,7 @@ def train(config=None):
     if bool(config["evaluate_after_training"]):
         model = get_model2(exp_path, config)
 
-        img, seg = first(val_dataloader)
+        img, seg = first(val_dl)
         output_images = model(img)
         if bool(loss_config["sigmoid"]):
             y_pred = th.sigmoid(output_images.detach())
@@ -233,7 +142,7 @@ def train(config=None):
         best_metric_per_channel = plot_metric_over_thresh(config,
                                                           metric,
                                                           model,
-                                                          val_dataloader,
+                                                          val_dl,
                                                           writer,
                                                           exp_path + "thresh_variation.png",
                                                           device)

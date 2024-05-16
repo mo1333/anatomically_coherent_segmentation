@@ -106,6 +106,7 @@ def plot_model_output(sample, save_name):
 
 
 def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_name, device=th.device("cpu")):
+    # TODO: Think about whether we want an additional evalution for polar data
     loss_config = config["loss_config"]
     device_model = model.to(device)
 
@@ -138,12 +139,10 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         y_true = np.array(y_true)
         y_true = np.vstack(y_true)
         for thresh in tqdm(thresh_list, desc="Finding threshold for channel %d" % j, leave=False):
-            m = 0
-
             y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
             y_true_only1channel = th.unsqueeze(th.tensor(y_true[:, j]), 1)
-            m += th.mean(metric(y_pred_only1channel,
-                                y_true_only1channel))
+            m = th.mean(metric(y_pred_only1channel,
+                               y_true_only1channel))
             m_list.append(m)
             if best_metric < m:
                 best_metric = m

@@ -28,5 +28,6 @@
 	"cuda_name": "cuda:0",
 	"batch_size": 8,
 	"epochs": 1,
-	"perc_data_used": 1.0
+	"perc_data_used": 1.0,
+	"polar_data_used": 1
 }
