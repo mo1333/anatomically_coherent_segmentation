@@ -1,4 +1,5 @@
 import os.path
+import pickle
 
 from tqdm.auto import tqdm
 import ignite
@@ -9,6 +10,9 @@ from monai.handlers import CheckpointLoader
 from monai.networks.nets import UNet
 
 from loss import TotalLoss
+from train_util import val_dataloader_setup
+
+import polarTransform
 
 
 def get_model(exp_path, config):
@@ -106,7 +110,6 @@ def plot_model_output(sample, save_name):
 
 
 def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_name, device=th.device("cpu")):
-    # TODO: Think about whether we want an additional evalution for polar data
     loss_config = config["loss_config"]
     device_model = model.to(device)
 
@@ -116,7 +119,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
                                 figsize=(10, 8))
 
     best_metric_per_channel = []
-
+    best_threshold_per_channel = []
     for plot, j in zip(plots, channels_of_interest):
         best_metric = -1
         best_thresh = -1
@@ -149,6 +152,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
                 best_thresh = thresh
 
         best_metric_per_channel.append(best_metric)
+        best_threshold_per_channel.append(best_thresh)
         for i in range(len(list(thresh_list))):
             writer.add_scalar("Dice Score Channel " + str(j), m_list[i], i)
         plot[0].plot(thresh_list, m_list)
@@ -163,4 +167,32 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
     plt.savefig(save_name)
     plt.show()
 
-    return best_metric_per_channel
+    return best_metric_per_channel, best_threshold_per_channel
+
+def evaluate_polar_model(config, best_threshold_per_channel, metric, model, device=th.device("cpu")):
+    with open("data_polar/REFUGE2/Validation/settings.pickle", "rb") as handle:
+        settings_dict = pickle.load(handle)
+
+    val_dataloader, polar_val_dataloader, names = val_dataloader_setup()
+    device_model = model.to(device)
+    loss_config = config("loss_config")
+    channels_of_interest = [1, 2]
+    metric_per_channel = []
+    for j, (og_batch, polar_batch) in enumerate(zip(val_dataloader, polar_val_dataloader)):
+        og_image, og_labels = og_batch[0], og_batch[1]
+        polar_image, polar_labels = polar_batch[0].to(device), polar_batch[1]
+        output = device_model(polar_image)
+        if bool(loss_config["sigmoid"]):
+            output = th.sigmoid(output)
+        if bool(loss_config["softmax"]):
+            output = th.softmax(output, dim=1)
+        output = output.detach().cpu().numpy()[0]
+        output_cartesian = np.transpose(settings_dict[names[j]].convertToCartesianImage(output), (1, 2, 0))
+        output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
+        output_cartesian = np.expand_dims(output_cartesian, axis=0)
+        for channel, thresh in zip(channels_of_interest, best_threshold_per_channel):
+            output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= thresh), 1)
+            y_true_only1channel = th.unsqueeze(th.tensor(og_labels[:, channel]), 1)
+            metric_per_channel.append(th.mean(metric(output_only1channel, y_true_only1channel)))
+    return metric_per_channel
+

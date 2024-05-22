@@ -99,3 +99,33 @@ def dataloader_setup(config):
                                          shuffle=False)
 
     return train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader
+
+
+def val_dataloader_setup():
+    transformer_val = Compose([LoadImage(image_only=True),
+                               EnsureChannelFirst(),
+                               ScaleIntensity()])
+
+    val_image_path = "data/REFUGE2/Validation/Images/"
+    val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
+
+    val_image_path_polar = "data_polar/REFUGE2/Validation/Images/"
+    val_dm_path_polar = "data_polar/REFUGE2/Validation/Disc_Masks/"
+
+    config = {"batch_size": 1}
+
+    val_dataloader = setup_loader(config,
+                                  sorted([val_image_path + file for file in os.listdir(val_image_path)]),
+                                  sorted([val_dm_path + file for file in os.listdir(val_dm_path)]),
+                                  transformer_val,
+                                  shuffle=False)
+
+    val_polar_dataloader = setup_loader(config,
+                                        sorted([val_image_path_polar + file for file in os.listdir(val_image_path_polar)]),
+                                        sorted([val_dm_path_polar + file for file in os.listdir(val_dm_path_polar)]),
+                                        transformer_val,
+                                        shuffle=False)
+
+    names = os.listdir(val_image_path_polar)
+
+    return val_dataloader, val_polar_dataloader, names

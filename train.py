@@ -16,7 +16,7 @@ from monai.utils import first
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from evaluate_util import get_model2, plot_metric_over_thresh, plot_model_output
+from evaluate_util import get_model2, plot_metric_over_thresh, plot_model_output, evaluate_polar_model
 from train_util import dataloader_setup
 from loss import TotalLoss
 
@@ -53,7 +53,8 @@ def train(config=None):
 
     config["timestamp"] = now_str
 
-    train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader = dataloader_setup(config)
+    train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader = dataloader_setup(
+        config)
 
     if not os.path.exists(exp_path):
         os.makedirs(exp_path)
@@ -139,13 +140,17 @@ def train(config=None):
                           exp_path + "model_output.png")
 
         metric = DiceMetric()
-        best_metric_per_channel = plot_metric_over_thresh(config,
-                                                          metric,
-                                                          model,
-                                                          val_dl,
-                                                          writer,
-                                                          exp_path + "thresh_variation.png",
-                                                          device)
+        best_metric_per_channel, best_threshold_per_channel = plot_metric_over_thresh(config,
+                                                                                      metric,
+                                                                                      model,
+                                                                                      val_dl,
+                                                                                      writer,
+                                                                                      exp_path + "thresh_variation.png",
+                                                                                      device)
+
+        if polar:
+            best_metric_per_channel = evaluate_polar_model(config, best_threshold_per_channel, metric, model, device)
+            print(best_metric_per_channel)
 
     # --------------
     # --- FINISH ---
