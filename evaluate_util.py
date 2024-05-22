@@ -188,7 +188,7 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, devi
         if bool(loss_config["softmax"]):
             output = th.softmax(output, dim=1)
         output = output.detach().cpu().numpy()[0]
-        output_cartesian = np.transpose(settings_dict[names[j]].convertToCartesianImage(output), (1, 2, 0))
+        output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(output, (1, 2, 0)))
         output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
         output_cartesian = np.expand_dims(output_cartesian, axis=0)
         for channel, thresh in zip(channels_of_interest, best_threshold_per_channel):
