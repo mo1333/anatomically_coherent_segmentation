@@ -170,7 +170,8 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
     return best_metric_per_channel, best_threshold_per_channel
 
 
-def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writer, device=th.device("cpu")):
+def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writer, save_name, device=th.device("cpu")):
+    # TODO: find out why performance is soo bad, check whether server and PC agree on ordering
     with open("data_polar/REFUGE2/Validation/settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
 
@@ -191,6 +192,28 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
         output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(output, (2, 1, 0)))
         output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
         output_cartesian = np.expand_dims(output_cartesian, axis=0)
+
+        # ------------------------------------
+        if j == 0:
+            plt.imshow(og_image.permute(1, 2, 0).numpy()[0])
+            plt.title(names[j])
+            plt.savefig(save_name + "og_image.png")
+            plt.imshow(og_labels.permute(1, 2, 0).numpy()[0])
+            plt.title(names[j])
+            plt.savefig(save_name + "og_labels.png")
+            plt.imshow(polar_image.permute(1, 2, 0).numpy()[0])
+            plt.title(names[j])
+            plt.savefig(save_name + "polar_image.png")
+            plt.imshow(polar_labels.permute(1, 2, 0).numpy()[0])
+            plt.title(names[j])
+            plt.savefig(save_name + "polar_labels.png")
+            plt.imshow(np.transpose(output, (2, 1, 0)))
+            plt.title(names[j])
+            plt.savefig(save_name + "output.png")
+            plt.imshow(np.transpose(output_cartesian[0], (2, 0, 1)))
+            plt.title(names[j])
+            plt.savefig(save_name + "output_cartesian.png")
+        # ------------------------------------
 
         for i, (channel, thresh) in enumerate(zip(channels_of_interest, best_threshold_per_channel)):
             output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= thresh), 1)

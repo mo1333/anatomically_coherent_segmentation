@@ -154,6 +154,7 @@ def train(config=None):
                                                            metric,
                                                            model,
                                                            writer,
+                                                           exp_path,
                                                            device)
             print(best_metric_per_channel)
 
