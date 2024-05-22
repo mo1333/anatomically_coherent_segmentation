@@ -195,16 +195,16 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
 
         # ------------------------------------
         if j == 0:
-            plt.imshow(og_image.permute(1, 2, 0).numpy()[0])
+            plt.imshow(og_image[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
             plt.savefig(save_name + "og_image.png")
-            plt.imshow(og_labels.permute(1, 2, 0).numpy()[0])
+            plt.imshow(og_labels[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
             plt.savefig(save_name + "og_labels.png")
-            plt.imshow(polar_image.permute(1, 2, 0).numpy()[0])
+            plt.imshow(polar_image[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
             plt.savefig(save_name + "polar_image.png")
-            plt.imshow(polar_labels.permute(1, 2, 0).numpy()[0])
+            plt.imshow(polar_labels[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
             plt.savefig(save_name + "polar_labels.png")
             plt.imshow(np.transpose(output, (2, 1, 0)))
