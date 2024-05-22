@@ -188,15 +188,17 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
         if bool(loss_config["softmax"]):
             output = th.softmax(output, dim=1)
         output = output.detach().cpu().numpy()[0]
-        output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(output, (1, 2, 0)))
+        output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(output, (2, 1, 0)))
         output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
         output_cartesian = np.expand_dims(output_cartesian, axis=0)
+
         for i, (channel, thresh) in enumerate(zip(channels_of_interest, best_threshold_per_channel)):
             output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= thresh), 1)
             y_true_only1channel = th.unsqueeze(og_labels[:, channel], 1)
             metrics[i].append(th.mean(metric(output_only1channel, y_true_only1channel)))
-            writer.add_image("final output channel " + str(channel), output_only1channel[0, 0], global_step=j, dataformats="HW")
-            writer.add_image("desired output channel " + str(channel), y_true_only1channel[0, 0], global_step=j, dataformats="HW")
+            writer.add_image("final output channel " + str(channel), output_only1channel[0, 0], global_step=j,
+                             dataformats="HW")
+            writer.add_image("desired output channel " + str(channel), y_true_only1channel[0, 0], global_step=j,
+                             dataformats="HW")
     metric_per_channel = [np.mean(m) for m in metrics]
     return metric_per_channel
-
