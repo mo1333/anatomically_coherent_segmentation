@@ -178,7 +178,7 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, devi
     device_model = model.to(device)
     loss_config = config["loss_config"]
     channels_of_interest = [1, 2]
-    metric_per_channel = []
+    metrics = [[] for _ in range(len(channels_of_interest))]
     for j, (og_batch, polar_batch) in enumerate(zip(val_dataloader, polar_val_dataloader)):
         og_image, og_labels = og_batch[0], og_batch[1]
         polar_image, polar_labels = polar_batch[0].to(device), polar_batch[1]
@@ -193,7 +193,8 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, devi
         output_cartesian = np.expand_dims(output_cartesian, axis=0)
         for channel, thresh in zip(channels_of_interest, best_threshold_per_channel):
             output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= thresh), 1)
-            y_true_only1channel = th.unsqueeze(th.tensor(og_labels[:, channel]), 1)
-            metric_per_channel.append(th.mean(metric(output_only1channel, y_true_only1channel)))
+            y_true_only1channel = th.unsqueeze(og_labels[:, channel], 1)
+            metrics[j].append(th.mean(metric(output_only1channel, y_true_only1channel)))
+    metric_per_channel = [np.mean(m) for m in metrics]
     return metric_per_channel
 
