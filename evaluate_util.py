@@ -210,7 +210,7 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
             plt.imshow(np.transpose(output, (2, 1, 0)))
             plt.title(names[j])
             plt.savefig(save_name + "output.png")
-            plt.imshow(np.transpose(output_cartesian[0], (2, 0, 1)))
+            plt.imshow(np.transpose(output_cartesian[0], (1, 2, 0)))
             plt.title(names[j])
             plt.savefig(save_name + "output_cartesian.png")
         # ------------------------------------
