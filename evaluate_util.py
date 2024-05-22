@@ -170,7 +170,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
     return best_metric_per_channel, best_threshold_per_channel
 
 
-def evaluate_polar_model(config, best_threshold_per_channel, metric, model, device=th.device("cpu")):
+def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writer, device=th.device("cpu")):
     with open("data_polar/REFUGE2/Validation/settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
 
@@ -195,6 +195,8 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, devi
             output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= thresh), 1)
             y_true_only1channel = th.unsqueeze(og_labels[:, channel], 1)
             metrics[i].append(th.mean(metric(output_only1channel, y_true_only1channel)))
+            writer.add_image("final output channel " + str(channel), output_only1channel[0, 0], global_step=j, dataformats="HW")
+            writer.add_image("desired output channel " + str(channel), y_true_only1channel[0, 0], global_step=j, dataformats="HW")
     metric_per_channel = [np.mean(m) for m in metrics]
     return metric_per_channel
 
