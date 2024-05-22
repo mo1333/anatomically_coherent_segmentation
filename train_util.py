@@ -87,13 +87,15 @@ def dataloader_setup(config):
                                           shuffle=True)
 
     val_polar_dataloader = setup_loader(config,
-                                        sorted([val_image_path_polar + file for file in os.listdir(val_image_path_polar)]),
+                                        sorted(
+                                            [val_image_path_polar + file for file in os.listdir(val_image_path_polar)]),
                                         sorted([val_dm_path_polar + file for file in os.listdir(val_dm_path_polar)]),
                                         transformer_val,
                                         shuffle=False)
 
     test_polar_dataloader = setup_loader(config,
-                                         sorted([test_image_path_polar + file for file in os.listdir(test_image_path_polar)]),
+                                         sorted([test_image_path_polar + file for file in
+                                                 os.listdir(test_image_path_polar)]),
                                          sorted([test_dm_path_polar + file for file in os.listdir(test_dm_path_polar)]),
                                          transformer_val,
                                          shuffle=False)
@@ -121,7 +123,8 @@ def val_dataloader_setup():
                                   shuffle=False)
 
     val_polar_dataloader = setup_loader(config,
-                                        sorted([val_image_path_polar + file for file in os.listdir(val_image_path_polar)]),
+                                        sorted(
+                                            [val_image_path_polar + file for file in os.listdir(val_image_path_polar)]),
                                         sorted([val_dm_path_polar + file for file in os.listdir(val_dm_path_polar)]),
                                         transformer_val,
                                         shuffle=False)
