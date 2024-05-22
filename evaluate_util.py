@@ -166,6 +166,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         plot[2].set_axis_off()
     plt.savefig(save_name)
     plt.show()
+    plt.close(fig)
 
     return best_metric_per_channel, best_threshold_per_channel
 

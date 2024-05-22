@@ -129,6 +129,6 @@ def val_dataloader_setup():
                                         transformer_val,
                                         shuffle=False)
 
-    names = os.listdir(val_image_path_polar)
+    names = sorted(os.listdir(val_image_path_polar))
 
     return val_dataloader, val_polar_dataloader, names
