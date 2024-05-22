@@ -204,7 +204,7 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
             plt.imshow(polar_image[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
             plt.savefig(save_name + "polar_image.png")
-            plt.imshow(polar_labels[0].permute(1, 2, 0).numpy())
+            plt.imshow(polar_labels.detach().cpu()[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
             plt.savefig(save_name + "polar_labels.png")
             plt.imshow(np.transpose(output, (2, 1, 0)))
