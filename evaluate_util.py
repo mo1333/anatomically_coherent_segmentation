@@ -191,10 +191,10 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, devi
         output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(output, (1, 2, 0)))
         output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
         output_cartesian = np.expand_dims(output_cartesian, axis=0)
-        for channel, thresh in zip(channels_of_interest, best_threshold_per_channel):
+        for i, (channel, thresh) in enumerate(zip(channels_of_interest, best_threshold_per_channel)):
             output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= thresh), 1)
             y_true_only1channel = th.unsqueeze(og_labels[:, channel], 1)
-            metrics[j].append(th.mean(metric(output_only1channel, y_true_only1channel)))
+            metrics[i].append(th.mean(metric(output_only1channel, y_true_only1channel)))
     metric_per_channel = [np.mean(m) for m in metrics]
     return metric_per_channel
 
