@@ -169,13 +169,14 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
 
     return best_metric_per_channel, best_threshold_per_channel
 
+
 def evaluate_polar_model(config, best_threshold_per_channel, metric, model, device=th.device("cpu")):
     with open("data_polar/REFUGE2/Validation/settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
 
     val_dataloader, polar_val_dataloader, names = val_dataloader_setup()
     device_model = model.to(device)
-    loss_config = config("loss_config")
+    loss_config = config["loss_config"]
     channels_of_interest = [1, 2]
     metric_per_channel = []
     for j, (og_batch, polar_batch) in enumerate(zip(val_dataloader, polar_val_dataloader)):
