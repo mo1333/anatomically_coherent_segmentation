@@ -107,6 +107,7 @@ def plot_model_output(sample, save_name):
 
     plt.savefig(save_name)
     plt.show()
+    plt.close(fig)
 
 
 def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_name, device=th.device("cpu")):
@@ -172,10 +173,9 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
 
 
 def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writer, save_name, device=th.device("cpu")):
-    # TODO: find out why performance is soo bad, check whether server and PC agree on ordering
     with open("data_polar/REFUGE2/Validation/settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
-
+    plt.figure(3)
     val_dataloader, polar_val_dataloader, names = val_dataloader_setup()
     device_model = model.to(device)
     loss_config = config["loss_config"]
