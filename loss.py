@@ -23,7 +23,7 @@ class TotalLoss(_Loss):
         self.loss_config = loss_config
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        return self.diceCeLoss(input, target) + self.loss_config["lambda_top"] * self.topologyLoss(input)
+        return (self.diceCeLoss(input, target), self.loss_config["lambda_top"] * self.topologyLoss(input))
 
 
 class NaiveTopologyLoss(_Loss):

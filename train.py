@@ -99,11 +99,14 @@ def train(config=None):
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             opt.zero_grad()
             outputs = model(inputs)
-            loss = loss_func(outputs, labels)
+            losses = loss_func(outputs, labels)
+            loss = losses.sum()
             loss.backward()
             opt.step()
             epoch_len = len(trn_dl.dataset) // trn_dl.batch_size
             writer.add_scalar("train loss", loss.item(), epoch_len * epoch + step)
+            writer.add_scalar("dice loss", losses[0].item(), epoch_len * epoch + step)
+            writer.add_scalar("topology loss", losses[1].item(), epoch_len * epoch + step)
 
         model.eval()
         val_loss = 0
