@@ -104,9 +104,9 @@ def train(config=None):
             loss.backward()
             opt.step()
             epoch_len = len(trn_dl.dataset) // trn_dl.batch_size
-            writer.add_scalar("train loss", loss.item(), epoch_len * epoch + step)
-            writer.add_scalar("dice loss", losses[1].item(), epoch_len * epoch + step)
-            writer.add_scalar("topology loss", losses[2].item(), epoch_len * epoch + step)
+            writer.add_scalar("train_loss/total", loss.item(), epoch_len * epoch + step)
+            writer.add_scalar("train_loss/dice", losses[1].item(), epoch_len * epoch + step)
+            writer.add_scalar("train_loss/topology", losses[2].item(), epoch_len * epoch + step)
 
         model.eval()
         val_loss = 0
