@@ -105,17 +105,25 @@ def train(config=None):
             opt.step()
             epoch_len = len(trn_dl.dataset) // trn_dl.batch_size
             writer.add_scalar("train_loss/total", loss.item(), epoch_len * epoch + step)
-            writer.add_scalar("train_loss/dice", losses[1].item(), epoch_len * epoch + step)
+            writer.add_scalar("train_loss/diceCe", losses[1].item(), epoch_len * epoch + step)
             writer.add_scalar("train_loss/topology", losses[2].item(), epoch_len * epoch + step)
 
         model.eval()
-        val_loss = 0
+        val_loss_total = 0
+        val_loss_dice = 0
+        val_loss_topology = 0
+        counter = 0
         for batch_data in val_dl:
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             outputs = model(inputs)
-            loss = loss_func(outputs, labels)[0]
-            val_loss += loss.item()
-        writer.add_scalar("validation loss", val_loss, epoch)
+            losses = loss_func(outputs, labels)
+            val_loss_total += losses[0].item()
+            val_loss_dice += losses[1].item()
+            val_loss_topology += losses[2].item()
+            counter += 1
+        writer.add_scalar("validation_loss/total", val_loss_total / counter, epoch)
+        writer.add_scalar("validation_loss/diceCe", val_loss_dice / counter, epoch)
+        writer.add_scalar("validation_loss/total", val_loss_topology / counter, epoch)
         writer.add_image("sample output channel 1", outputs[0, 1], global_step=epoch, dataformats="HW")
         writer.add_image("sample output channel 2", outputs[0, 2], global_step=epoch, dataformats="HW")
 
