@@ -100,20 +100,20 @@ def train(config=None):
             opt.zero_grad()
             outputs = model(inputs)
             losses = loss_func(outputs, labels)
-            loss = losses.sum()
+            loss = losses[0]
             loss.backward()
             opt.step()
             epoch_len = len(trn_dl.dataset) // trn_dl.batch_size
             writer.add_scalar("train loss", loss.item(), epoch_len * epoch + step)
-            writer.add_scalar("dice loss", losses[0].item(), epoch_len * epoch + step)
-            writer.add_scalar("topology loss", losses[1].item(), epoch_len * epoch + step)
+            writer.add_scalar("dice loss", losses[1].item(), epoch_len * epoch + step)
+            writer.add_scalar("topology loss", losses[2].item(), epoch_len * epoch + step)
 
         model.eval()
         val_loss = 0
         for batch_data in val_dl:
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             outputs = model(inputs)
-            loss = loss_func(outputs, labels)
+            loss = loss_func(outputs, labels)[0]
             val_loss += loss.item()
         writer.add_scalar("validation loss", val_loss, epoch)
         writer.add_image("sample output channel 1", outputs[0, 1], global_step=epoch, dataformats="HW")
