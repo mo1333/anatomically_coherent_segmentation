@@ -17,16 +17,19 @@ class TotalLoss(_Loss):
                                      lambda_ce=loss_config["lambda_ce"],
                                      include_background=bool(loss_config["include_background"]))
 
-        self.topologyLoss = NaiveTopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
-                                              softmax=bool(loss_config["softmax"]),
-                                              post_func=loss_config["post_func"])
+        # self.topologyLoss = NaiveTopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
+        #                                       softmax=bool(loss_config["softmax"]),
+        #                                       post_func=loss_config["post_func"])
+
+        self.topologyLoss = TopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
+                                         softmax=bool(loss_config["softmax"]))
+
         self.loss_config = loss_config
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
-        return (self.diceCeLoss(input, target) + self.loss_config["lambda_top"] * self.topologyLoss(input),
+        return (self.diceCeLoss(input, target) + self.loss_config["lambda_top"] * self.topologyLoss(input, target),
                 self.diceCeLoss(input, target),
-                self.loss_config["lambda_top"] * self.topologyLoss(input))
-
+                self.loss_config["lambda_top"] * self.topologyLoss(input, target))
 
 
 class NaiveTopologyLoss(_Loss):
@@ -36,12 +39,12 @@ class NaiveTopologyLoss(_Loss):
         self.softmax = softmax
         self.post_func = post_func
 
-    def forward(self, input: torch.Tensor) -> torch.Tensor:
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
         :param input:
         :return:
 
-        required input shape: BCWH(D)
+        required input shape: BCHW(D)
         """
 
         func_dict = {"": None,
@@ -53,8 +56,38 @@ class NaiveTopologyLoss(_Loss):
             y = torch.sigmoid(input)
         if self.softmax:
             y = torch.softmax(input, dim=1)
+
         diff = y[:, 1] - y[:, 2]
         f = torch.clamp(diff, min=0)  # apply elementwise max(x, 0) to diff
         if func_dict[self.post_func]:
             f = func_dict[self.post_func](f)
         return torch.mean(f)
+
+
+class TopologyLoss(_Loss):
+    def __init__(self, sigmoid, softmax):
+        super().__init__()
+        self.sigmoid = sigmoid
+        self.softmax = softmax
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        :param input:
+        :return:
+
+        required input shape: BCHW(D)
+        """
+
+        if self.sigmoid:
+            y = torch.sigmoid(input)
+        if self.softmax:
+            y = torch.softmax(input, dim=1)
+
+        log_y = torch.log(y)
+        prod = - torch.mul(target, log_y)
+        sum_over_channels = torch.sum(prod, dim=1)
+
+        # Assumption: a prediction is valid according to topology, when the prob. for cup is smaller than disc
+        V = (y[:, 1] <= y[:, 2]).int()
+
+        return torch.mean(torch.mul(sum_over_channels, V))
