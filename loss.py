@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+from typing import Tuple, Any
+
 import torch
 from monai.losses import DiceCELoss
 from monai.utils import LossReduction
@@ -26,7 +28,7 @@ class TotalLoss(_Loss):
 
         self.loss_config = loss_config
 
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> tuple[Any, Any, Any]:
         return (self.diceCeLoss(input, target) + self.loss_config["lambda_top"] * self.topologyLoss(input, target),
                 self.diceCeLoss(input, target),
                 self.loss_config["lambda_top"] * self.topologyLoss(input, target))
@@ -72,6 +74,7 @@ class TopologyLoss(_Loss):
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
+        :param target:
         :param input:
         :return:
 
@@ -83,7 +86,7 @@ class TopologyLoss(_Loss):
         if self.softmax:
             y = torch.softmax(input, dim=1)
 
-        log_y = torch.log(y)
+        log_y = torch.log(y) # sometimes training fail. Maybe due to taking log?
         prod = - torch.mul(target, log_y)
         sum_over_channels = torch.sum(prod, dim=1)
 

@@ -123,7 +123,7 @@ def train(config=None):
             counter += 1
         writer.add_scalar("validation_loss/total", val_loss_total / counter, epoch)
         writer.add_scalar("validation_loss/diceCe", val_loss_dice / counter, epoch)
-        writer.add_scalar("validation_loss/total", val_loss_topology / counter, epoch)
+        writer.add_scalar("validation_loss/topology", val_loss_topology / counter, epoch)
         writer.add_image("sample output channel 1", outputs[0, 1], global_step=epoch, dataformats="HW")
         writer.add_image("sample output channel 2", outputs[0, 2], global_step=epoch, dataformats="HW")
 
