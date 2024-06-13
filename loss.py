@@ -86,7 +86,7 @@ class TopologyLoss(_Loss):
         if self.softmax:
             y = torch.softmax(input, dim=1)
 
-        log_y = torch.log(y) # sometimes training fail. Maybe due to taking log?
+        log_y = torch.log(y + 1e-8) # sometimes training fail. Maybe due to taking log?
         prod = - torch.mul(target, log_y)
         sum_over_channels = torch.sum(prod, dim=1)
 
