@@ -163,8 +163,8 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         sample_label = y_true[0, j]
         sample_image_torch = th.from_numpy(sample_image)[None, None, :, :]
         sample_label_torch = th.from_numpy(sample_label)[None, None, :, :]
-        plot[1].set_title("prediction channel /n Sample dice score: %d" % metric(sample_image_torch,
-                                                                                 sample_label_torch))
+        plot[1].set_title("prediction channel \n Sample dice score: %.3f" % metric(sample_image_torch,
+                                                                                   sample_label_torch))
         plot[1].imshow(sample_image >= best_thresh,
                        cmap="gray")  # take the first image and show thresholded version of model output
         plot[1].set_axis_off()
