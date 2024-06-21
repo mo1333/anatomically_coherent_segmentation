@@ -167,7 +167,6 @@ def train(config=None):
                                                            writer,
                                                            exp_path,
                                                            device)
-            print(best_metric_per_channel)
 
     # --------------
     # --- FINISH ---

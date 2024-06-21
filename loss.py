@@ -94,3 +94,24 @@ class TopologyLoss(_Loss):
         V = (y[:, 1] <= y[:, 2]).int()
 
         return torch.mean(torch.mul(sum_over_channels, V))
+
+class CDRLoss(_Loss):
+    def __init__(self, sigmoid, softmax):
+        super().__init__()
+        self.sigmoid = sigmoid
+        self.softmax = softmax
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """
+        :param target:
+        :param input:
+        :return:
+
+        required input shape: BCHW(D)
+        """
+
+        if self.sigmoid:
+            y = torch.sigmoid(input)
+        if self.softmax:
+            y = torch.softmax(input, dim=1)
+

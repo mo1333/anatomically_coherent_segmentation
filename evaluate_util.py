@@ -139,7 +139,9 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
             y_true.append(labels.numpy())
 
         y_pred = np.array(y_pred)
-        y_pred = np.vstack(y_pred)  # merge all batches to get (#samples, 512, 512) as shape
+        print(y_pred.shape)
+        y_pred = np.vstack(y_pred)  # merge all batches to get (#samples, 3, 512, 512) as shape
+        print(y_pred.shape)
         y_true = np.array(y_true)
         y_true = np.vstack(y_true)
         for thresh in tqdm(thresh_list, desc="Finding threshold for channel %d" % j, leave=False):
@@ -160,7 +162,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         plot[0].set_title("metric over threshold")
 
         plot[1].imshow(y_pred[0, j] >= best_thresh,
-                       cmap="gray")  # take the first image in the batch and show thresholded version of model output
+                       cmap="gray")  # take the first image and show thresholded version of model output
         plot[1].set_axis_off()
 
         plot[2].imshow(labels[0, j], cmap="gray")
