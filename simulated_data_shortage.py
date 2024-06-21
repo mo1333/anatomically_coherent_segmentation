@@ -8,10 +8,14 @@ with open("config.json", 'r') as file:
     config = json.load(file)
 
 experiment_name = config["experiment_name"]
+data_shortage_config = config["data_shortage_config"]
 
 best_metric_per_percentage = []
 
-percentages = np.linspace(0.1, 1.0, num=10)
+percentages = np.linspace(data_shortage_config["start_percentage"],
+                          data_shortage_config["end_percentage"],
+                          num=data_shortage_config["number_of_experiments"])
+percentages = [round(percentage, 2) for percentage in percentages]
 for percentage in percentages:
     config["experiment_name"] = experiment_name + "_" + str(int(percentage*100))
     config["overwrite_exp_path"] = experiment_name + "/" + str(int(percentage*100))
