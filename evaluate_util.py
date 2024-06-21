@@ -139,9 +139,7 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
             y_true.append(labels.numpy())
 
         y_pred = np.array(y_pred)
-        print(y_pred.shape)
         y_pred = np.vstack(y_pred)  # merge all batches to get (#samples, 3, 512, 512) as shape
-        print(y_pred.shape)
         y_true = np.array(y_true)
         y_true = np.vstack(y_true)
         for thresh in tqdm(thresh_list, desc="Finding threshold for channel %d" % j, leave=False):
@@ -161,10 +159,18 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         plot[0].plot(thresh_list, m_list)
         plot[0].set_title("metric over threshold")
 
-        plot[1].imshow(y_pred[0, j] >= best_thresh,
+
+        sample_image = y_pred[0, j] >= best_thresh
+        sample_label = labels[0, j]
+        sample_image_torch = th.from_numpy(sample_image)[None, None, :, :]
+        sample_label_torch = th.from_numpy(sample_label)[None, None, :, :]
+        plot[1].set_title("prediction channel /n Sample dice score: %d" % metric(sample_image_torch,
+                                                                                 sample_label_torch))
+        plot[1].imshow(sample_image >= best_thresh,
                        cmap="gray")  # take the first image and show thresholded version of model output
         plot[1].set_axis_off()
 
+        plot[2].set_title("ground-truth")
         plot[2].imshow(labels[0, j], cmap="gray")
         plot[2].set_axis_off()
     plt.savefig(save_name)
