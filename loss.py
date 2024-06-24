@@ -26,12 +26,18 @@ class TotalLoss(_Loss):
         self.topologyLoss = TopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
                                          softmax=bool(loss_config["softmax"]))
 
+        self.cdrloss = CDRLoss(sigmoid=bool(loss_config["sigmoid"]),
+                               softmax=bool(loss_config["softmax"]))
+
         self.loss_config = loss_config
 
-    def forward(self, input: torch.Tensor, target: torch.Tensor) -> tuple[Any, Any, Any]:
-        return (self.diceCeLoss(input, target) + self.loss_config["lambda_top"] * self.topologyLoss(input, target),
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> tuple[Any, Any, Any, Any]:
+        return (self.diceCeLoss(input, target) +
+                self.loss_config["lambda_top"] * self.topologyLoss(input, target) +
+                self.loss_config["lambda_cdr"] * self.cdrloss(input, target),
                 self.diceCeLoss(input, target),
-                self.loss_config["lambda_top"] * self.topologyLoss(input, target))
+                self.loss_config["lambda_top"] * self.topologyLoss(input, target),
+                self.loss_config["lambda_cdr"] * self.cdrloss(input, target))
 
 
 class NaiveTopologyLoss(_Loss):
@@ -86,7 +92,7 @@ class TopologyLoss(_Loss):
         if self.softmax:
             y = torch.softmax(input, dim=1)
 
-        log_y = torch.log(y + 1e-8) # sometimes training fail. Maybe due to taking log?
+        log_y = torch.log(y + 1e-8)  # needs small, to prevent taking log(0)
         prod = - torch.mul(target, log_y)
         sum_over_channels = torch.sum(prod, dim=1)
 
@@ -95,11 +101,13 @@ class TopologyLoss(_Loss):
 
         return torch.mean(torch.mul(sum_over_channels, V))
 
+
 class CDRLoss(_Loss):
-    def __init__(self, sigmoid, softmax):
+    def __init__(self, sigmoid, softmax, offset=0.05):
         super().__init__()
         self.sigmoid = sigmoid
         self.softmax = softmax
+        self.offset = offset
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -108,6 +116,7 @@ class CDRLoss(_Loss):
         :return:
 
         required input shape: BCHW(D)
+        with channels being 0... background, 1... optic cup, 2... optic disc
         """
 
         if self.sigmoid:
@@ -115,3 +124,37 @@ class CDRLoss(_Loss):
         if self.softmax:
             y = torch.softmax(input, dim=1)
 
+        label_cup_diameter = get_vertical_diameter(target[:, 1])
+        label_disc_diameter = get_vertical_diameter(target[:, 2])
+        pred_cup_diameter = get_vertical_diameter(y[:, 1] >= 0.5)
+        pred_disc_diameter = get_vertical_diameter(y[:, 2] >= 0.5)
+        print(label_cup_diameter, label_disc_diameter, pred_cup_diameter, pred_disc_diameter)
+        mse = torch.square(
+            torch.div(label_cup_diameter, label_disc_diameter) - torch.div(pred_cup_diameter, pred_disc_diameter))
+        mask = torch.tensor([0, 1, 0])  # we only want the cup to change
+        mask = mask.unsqueeze(0).unsqueeze(2).unsqueeze(2)
+        y_masked = y * mask
+
+        mse = mse.unsqueeze(1).unsqueeze(1).unsqueeze(1)
+
+        return (-torch.square(y_masked) + y_masked + 0.05) * mse
+
+
+def get_vertical_diameter(images):
+    """
+    :param images:
+    :return:
+
+    required input shape: BHW
+    """
+    batch_size = images.shape[0]
+
+    # returns a 3-tuple, containing all coordinates of active points
+    indices = torch.where(images >= 0.5)
+
+    # get all indices of the variable "indices" which contain each batch index
+    indices_per_id = [torch.where(indices[0] == i) for i in range(batch_size)]
+
+    # subtract first index of appearance in H dimension from last one to get vertical pixel-diameter
+    return torch.tensor([(indices[1][indices_per_id[i][0][-1]] - indices[1][indices_per_id[i][0][0]]).item() for i in
+                         range(batch_size)])

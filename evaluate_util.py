@@ -144,7 +144,12 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         y_true = np.vstack(y_true)
         for thresh in tqdm(thresh_list, desc="Finding threshold for channel %d" % j, leave=False):
             y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
-            y_true_only1channel = th.unsqueeze(th.tensor(y_true[:, j]), 1)
+            """
+            think about this later: When we did the rescaling of images, the label matrix got non-integer entries, 
+            due to interpolation. This is why we need to write >= 0.5, since the DiceMetric wants to see
+            binarized inputs. This is repeated where sample_label is defined!
+            """
+            y_true_only1channel = th.unsqueeze(th.tensor(y_true[:, j] >= 0.5), 1)
             m = th.mean(metric(y_pred_only1channel,
                                y_true_only1channel))
             m_list.append(m)
@@ -159,18 +164,18 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         plot[0].plot(thresh_list, m_list)
         plot[0].set_title("metric over threshold")
 
+        # take the first image and show thresholded version of model output
         sample_image = y_pred[0, j] >= best_thresh
-        sample_label = y_true[0, j]
+        sample_label = y_true[0, j] >= 0.5
         sample_image_torch = th.from_numpy(sample_image)[None, None, :, :]
         sample_label_torch = th.from_numpy(sample_label)[None, None, :, :]
         plot[1].set_title("prediction channel \n Sample dice score: %.3f" % metric(sample_image_torch,
                                                                                    sample_label_torch))
-        plot[1].imshow(sample_image >= best_thresh,
-                       cmap="gray")  # take the first image and show thresholded version of model output
+        plot[1].imshow(sample_image >= best_thresh, cmap="gray")
         plot[1].set_axis_off()
 
         plot[2].set_title("ground-truth")
-        plot[2].imshow(y_true[0, j], cmap="gray")
+        plot[2].imshow(sample_label, cmap="gray")  # and compare it to its corresponding label
         plot[2].set_axis_off()
     plt.savefig(save_name)
     plt.show()
