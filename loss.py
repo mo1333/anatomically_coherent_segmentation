@@ -133,7 +133,6 @@ class CDRLoss(_Loss):
         label_disc_diameter = get_vertical_diameter(target[:, 2])
         pred_cup_diameter = get_vertical_diameter(y[:, 1] >= 0.5)
         pred_disc_diameter = get_vertical_diameter(y[:, 2] >= 0.5)
-        print(label_cup_diameter, label_disc_diameter, pred_cup_diameter, pred_disc_diameter)
         mse = torch.square(
             torch.div(label_cup_diameter, label_disc_diameter) - torch.div(pred_cup_diameter, pred_disc_diameter)).to(
             self.device)
