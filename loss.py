@@ -10,9 +10,12 @@ from torch.nn.modules.loss import _Loss
 
 class TotalLoss(_Loss):
     def __init__(self,
-                 loss_config,
+                 config,
+                 device,
                  reduction: LossReduction | str = LossReduction.MEAN):
         super().__init__(reduction=LossReduction(reduction).value)
+        loss_config = config["loss_config"]
+        self.device = device
         self.diceCeLoss = DiceCELoss(sigmoid=bool(loss_config["sigmoid"]),
                                      softmax=bool(loss_config["softmax"]),
                                      lambda_dice=loss_config["lambda_dice"],
@@ -27,7 +30,8 @@ class TotalLoss(_Loss):
                                          softmax=bool(loss_config["softmax"]))
 
         self.cdrloss = CDRLoss(sigmoid=bool(loss_config["sigmoid"]),
-                               softmax=bool(loss_config["softmax"]))
+                               softmax=bool(loss_config["softmax"]),
+                               device = device)
 
         self.loss_config = loss_config
 
@@ -103,11 +107,12 @@ class TopologyLoss(_Loss):
 
 
 class CDRLoss(_Loss):
-    def __init__(self, sigmoid, softmax, offset=0.05):
+    def __init__(self, sigmoid, softmax, device, offset=0.05):
         super().__init__()
         self.sigmoid = sigmoid
         self.softmax = softmax
         self.offset = offset
+        self.device = device
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -131,7 +136,7 @@ class CDRLoss(_Loss):
         print(label_cup_diameter, label_disc_diameter, pred_cup_diameter, pred_disc_diameter)
         mse = torch.square(
             torch.div(label_cup_diameter, label_disc_diameter) - torch.div(pred_cup_diameter, pred_disc_diameter))
-        mask = torch.tensor([0, 1, 0])  # we only want the cup to change
+        mask = torch.tensor([0, 1, 0]).to(self.device)  # we only want the cup to change
         mask = mask.unsqueeze(0).unsqueeze(2).unsqueeze(2)
         y_masked = y * mask
 

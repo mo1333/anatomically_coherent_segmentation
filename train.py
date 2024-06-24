@@ -76,7 +76,7 @@ def train(config=None):
     ).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)
-    loss_func = TotalLoss(loss_config)
+    loss_func = TotalLoss(config, device)
 
     # ----------------
     # --- TRAINING ---
