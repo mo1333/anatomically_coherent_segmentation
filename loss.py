@@ -142,7 +142,7 @@ class CDRLoss(_Loss):
 
         mse = mse.unsqueeze(1).unsqueeze(1).unsqueeze(1)
 
-        return (-torch.square(y_masked) + y_masked + self.device) * mse
+        return (-torch.square(y_masked) + y_masked + self.offset) * mse
 
 
 def get_vertical_diameter(images):
