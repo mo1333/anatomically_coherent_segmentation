@@ -111,8 +111,8 @@ class CDRLoss(_Loss):
         super().__init__()
         self.sigmoid = sigmoid
         self.softmax = softmax
-        self.offset = offset
         self.device = device
+        self.offset = torch.tensor(offset).to(self.device)
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -142,7 +142,7 @@ class CDRLoss(_Loss):
 
         mse = mse.unsqueeze(1).unsqueeze(1).unsqueeze(1)
 
-        return (-torch.square(y_masked) + y_masked + 0.05) * mse
+        return (-torch.square(y_masked) + y_masked + self.device) * mse
 
 
 def get_vertical_diameter(images):
