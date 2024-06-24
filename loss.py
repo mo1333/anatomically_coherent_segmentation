@@ -31,7 +31,7 @@ class TotalLoss(_Loss):
 
         self.cdrloss = CDRLoss(sigmoid=bool(loss_config["sigmoid"]),
                                softmax=bool(loss_config["softmax"]),
-                               device = device)
+                               device=device)
 
         self.loss_config = loss_config
 
@@ -135,7 +135,8 @@ class CDRLoss(_Loss):
         pred_disc_diameter = get_vertical_diameter(y[:, 2] >= 0.5)
         print(label_cup_diameter, label_disc_diameter, pred_cup_diameter, pred_disc_diameter)
         mse = torch.square(
-            torch.div(label_cup_diameter, label_disc_diameter) - torch.div(pred_cup_diameter, pred_disc_diameter))
+            torch.div(label_cup_diameter, label_disc_diameter) - torch.div(pred_cup_diameter, pred_disc_diameter)).to(
+            self.device)
         mask = torch.tensor([0, 1, 0]).to(self.device)  # we only want the cup to change
         mask = mask.unsqueeze(0).unsqueeze(2).unsqueeze(2)
         y_masked = y * mask
