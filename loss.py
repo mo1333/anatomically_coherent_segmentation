@@ -160,6 +160,15 @@ def get_vertical_diameter(images):
     # get all indices of the variable "indices" which contain each batch index
     indices_per_id = [torch.where(indices[0] == i) for i in range(batch_size)]
 
-    # subtract first index of appearance in H dimension from last one to get vertical pixel-diameter
-    return torch.tensor([(indices[1][indices_per_id[i][0][-1]] - indices[1][indices_per_id[i][0][0]]).item() for i in
-                         range(batch_size)])
+
+    try:
+        # subtract first index of appearance in H dimension from last one to get vertical pixel-diameter
+        diameters = torch.tensor(
+            [(indices[1][indices_per_id[i][0][-1]] - indices[1][indices_per_id[i][0][0]]).item() for i in
+             range(batch_size)])
+    except IndexError:
+        # Hotfix: When one of the images in the batch has not predicted disc, or cup pixels,
+        # the loss for this batch is set to 0 (in order for the dice loss to be able to repair)
+        # Maybe change this later
+        diameters = torch.tensor([0] * batch_size)
+    return diameters
