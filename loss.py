@@ -117,7 +117,7 @@ class TopologyLoss(_Loss):
         sum_over_channels = torch.sum(prod, dim=1)
 
         # Assumption: a prediction is valid according to topology, when the prob. for cup is smaller than disc
-        V = (y[:, 1] <= y[:, 2]).int()
+        V = y[:, 1] <= y[:, 2]
 
         return torch.mean(torch.mul(sum_over_channels, V))
 
