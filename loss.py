@@ -26,12 +26,18 @@ class TotalLoss(_Loss):
         #                                       softmax=bool(loss_config["softmax"]),
         #                                       post_func=loss_config["post_func"])
 
-        self.topologyLoss = TopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
-                                         softmax=bool(loss_config["softmax"]))
+        if loss_config["lambda_top"] >= 1e-8:
+            self.topologyLoss = TopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
+                                             softmax=bool(loss_config["softmax"]))
+        else:
+            self.topologyLoss = DummyLoss(device=device)
 
-        self.cdrloss = CDRLoss(sigmoid=bool(loss_config["sigmoid"]),
-                               softmax=bool(loss_config["softmax"]),
-                               device=device)
+        if loss_config["lambda_cdr"] >= 1e-8:
+            self.cdrloss = CDRLoss(sigmoid=bool(loss_config["sigmoid"]),
+                                   softmax=bool(loss_config["softmax"]),
+                                   device=device)
+        else:
+            self.cdrloss = DummyLoss(device=device)
 
         self.loss_config = loss_config
 
@@ -42,6 +48,16 @@ class TotalLoss(_Loss):
                 self.diceCeLoss(input, target),
                 self.loss_config["lambda_top"] * self.topologyLoss(input, target),
                 self.loss_config["lambda_cdr"] * self.cdrloss(input, target))
+
+
+class DummyLoss(_Loss):
+    def __init__(self, device):
+        super().__init__()
+        self.device = device
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        zero_mask = torch.zeros_like(input).to(self.device)
+        return torch.mean(input * zero_mask)
 
 
 class NaiveTopologyLoss(_Loss):
