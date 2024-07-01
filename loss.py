@@ -149,8 +149,11 @@ class CDRLoss(_Loss):
         label_disc_diameter = get_vertical_diameter(target[:, 2])
         pred_cup_diameter = get_vertical_diameter(y[:, 1] >= 0.5)
         pred_disc_diameter = get_vertical_diameter(y[:, 2] >= 0.5)
+
+        # the ratio should not be able to exceed 1, therefore clamp with max=1
         mse = torch.square(
-            torch.div(label_cup_diameter, label_disc_diameter) - torch.div(pred_cup_diameter, pred_disc_diameter)).to(
+            torch.div(label_cup_diameter, label_disc_diameter) - torch.clamp(
+                torch.div(pred_cup_diameter, pred_disc_diameter), max=1)).to(
             self.device)
         mask = torch.tensor([0, 1, 0]).to(self.device)  # we only want the cup to change
         mask = mask.unsqueeze(0).unsqueeze(2).unsqueeze(2)
@@ -176,7 +179,6 @@ def get_vertical_diameter(images):
     # get all indices of the variable "indices" which contain each batch index
     indices_per_id = [torch.where(indices[0] == i) for i in range(batch_size)]
 
-
     try:
         # subtract first index of appearance in H dimension from last one to get vertical pixel-diameter
         diameters = torch.tensor(
@@ -186,5 +188,5 @@ def get_vertical_diameter(images):
         # Hotfix: When one of the images in the batch has not predicted disc, or cup pixels,
         # the loss for this batch is set to 0 (in order for the dice loss to be able to repair)
         # Maybe change this later
-        diameters = torch.tensor([0] * batch_size)
+        diameters = torch.tensor([1] * batch_size)
     return diameters

@@ -118,11 +118,11 @@ def train(config=None):
         for batch_data in val_dl:
             inputs, labels = batch_data[0].to(device), batch_data[1].to(device)
             outputs = model(inputs)
-            # losses = loss_func(outputs, labels)
-            # val_loss_total += losses[0].item()
-            # val_loss_dice += losses[1].item()
-            # val_loss_topology += losses[2].item()
-            # val_loss_cdr += losses[3].item()
+            losses = loss_func(outputs, labels)
+            val_loss_total += losses[0].item()
+            val_loss_dice += losses[1].item()
+            val_loss_topology += losses[2].item()
+            val_loss_cdr += losses[3].item()
             counter += 1
         writer.add_scalar("validation_loss/total", val_loss_total / counter, epoch)
         writer.add_scalar("validation_loss/diceCe", val_loss_dice / counter, epoch)
