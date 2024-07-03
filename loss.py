@@ -123,12 +123,13 @@ class TopologyLoss(_Loss):
 
 
 class CDRLoss(_Loss):
-    def __init__(self, sigmoid, softmax, device, offset=0.05):
+    def __init__(self, sigmoid, softmax, device, offset=0.05, strech_factor=1/2):
         super().__init__()
         self.sigmoid = sigmoid
         self.softmax = softmax
         self.device = device
         self.offset = torch.tensor(offset).to(self.device)
+        self.strech_factor = strech_factor
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -161,7 +162,7 @@ class CDRLoss(_Loss):
 
         mse = mse.unsqueeze(1).unsqueeze(1).unsqueeze(1)
 
-        return torch.mean((-torch.square(y_masked) + y_masked + self.offset) * mse)
+        return torch.mean((- self.strech_factor * torch.square(y_masked) + y_masked + self.offset) * mse)
 
 
 def get_vertical_diameter(images):

@@ -53,14 +53,19 @@ def train(config=None):
 
     config["timestamp"] = now_str
 
-    train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader = dataloader_setup(
-        config)
-
     if not os.path.exists(exp_path):
         os.makedirs(exp_path)
 
     with open(exp_path + "config.json", "w+") as outfile:
         json.dump(config, outfile, indent=4)
+
+    if loss_config["lambda_cdr"] >= 1e-8 and polar:
+        raise Exception("cdr loss and polar data are incompatible, either use normal data set or turn off cdr loss")
+
+    train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader = dataloader_setup(
+        config)
+
+
 
     # get all architectural details from config.json
     model = UNet(
