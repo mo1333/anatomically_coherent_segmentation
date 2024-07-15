@@ -8,11 +8,12 @@ import numpy as np
 import torch as th
 from monai.handlers import CheckpointLoader
 from monai.networks.nets import UNet
+from monai.metrics import HausdorffDistanceMetric
+from monai.metrics import DiceMetric
 
-from loss import TotalLoss
+from loss import TotalLoss, get_vertical_diameter
 from train_util import val_dataloader_setup
 
-import polarTransform
 
 
 def get_model(exp_path, config):
@@ -110,9 +111,16 @@ def plot_model_output(sample, save_name):
     plt.close(fig)
 
 
-def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_name, device=th.device("cpu")):
+def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, exp_path, device=th.device("cpu")):
+    save_name_plot = exp_path + "thresh_variation.png"
+    save_name_haus = exp_path + "hausdorff.pickle"
+    save_name_dice = exp_path + "dice.pickle"
+    save_name_diameters = exp_path + "diameters.pickle"
     loss_config = config["loss_config"]
     device_model = model.to(device)
+
+    haus = HausdorffDistanceMetric(reduction=None)
+    dice = DiceMetric(reduction=None)
 
     channels_of_interest = [1, 2]
     fig, (plots) = plt.subplots(len(channels_of_interest),
@@ -121,6 +129,9 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
 
     best_metric_per_channel = []
     best_threshold_per_channel = []
+    hausdorff_metric_per_channel = []
+    dice_metric_per_channel = []
+    diameters_per_channel = {"label": [], "pred": []}
     for plot, j in zip(plots, channels_of_interest):
         best_metric = -1
         best_thresh = -1
@@ -142,14 +153,16 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         y_pred = np.vstack(y_pred)  # merge all batches to get (#samples, 3, 512, 512) as shape
         y_true = np.array(y_true)
         y_true = np.vstack(y_true)
+
+        y_true_only1channel = th.unsqueeze(th.tensor(y_true[:, j] >= 0.5), 1)
         for thresh in tqdm(thresh_list, desc="Finding threshold for channel %d" % j, leave=False):
             y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= thresh), 1)
             """
             think about this later: When we did the rescaling of images, the label matrix got non-integer entries, 
             due to interpolation. This is why we need to write >= 0.5, since the DiceMetric wants to see
-            binarized inputs. This is repeated where sample_label is defined!
+            binarized inputs. This is repeated wherever y_true is needed
             """
-            y_true_only1channel = th.unsqueeze(th.tensor(y_true[:, j] >= 0.5), 1)
+
             m = th.mean(metric(y_pred_only1channel,
                                y_true_only1channel))
             m_list.append(m)
@@ -157,8 +170,19 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
                 best_metric = m
                 best_thresh = thresh
 
+        y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= best_thresh), 1)
         best_metric_per_channel.append(best_metric)
         best_threshold_per_channel.append(best_thresh)
+
+        hausdorff_metric_per_channel.append(haus(y_pred_only1channel, y_true_only1channel))
+        dice_metric_per_channel.append(dice(y_pred_only1channel, y_true_only1channel))
+
+        label_diameter = get_vertical_diameter(y_true_only1channel[:, 0])
+        pred_diameter = get_vertical_diameter(y_pred_only1channel[:, 0])
+
+        diameters_per_channel["label"].append(label_diameter)
+        diameters_per_channel["pred"].append(pred_diameter)
+
         for i in range(len(list(thresh_list))):
             writer.add_scalar("Dice Score Channel " + str(j), m_list[i], i)
         plot[0].plot(thresh_list, m_list)
@@ -177,9 +201,18 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, save_
         plot[2].set_title("ground-truth")
         plot[2].imshow(sample_label, cmap="gray")  # and compare it to its corresponding label
         plot[2].set_axis_off()
-    plt.savefig(save_name)
+    plt.savefig(save_name_plot)
     plt.show()
     plt.close(fig)
+
+    with open(save_name_haus, "wb") as handle:
+        pickle.dump(hausdorff_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open(save_name_dice, "wb") as handle:
+        pickle.dump(dice_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open(save_name_diameters, "wb") as handle:
+        pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     return best_metric_per_channel, best_threshold_per_channel
 

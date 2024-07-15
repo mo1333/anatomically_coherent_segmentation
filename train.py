@@ -165,7 +165,7 @@ def train(config=None):
                                                                                       model,
                                                                                       val_dl,
                                                                                       writer,
-                                                                                      exp_path + "thresh_variation.png",
+                                                                                      exp_path,
                                                                                       device)
 
         if polar:

@@ -175,7 +175,7 @@ def get_vertical_diameter(images):
     batch_size = images.shape[0]
 
     # returns a 3-tuple, containing all coordinates of active points
-    indices = torch.where(images >= 0.5)
+    indices = torch.where(images)
 
     # get all indices of the variable "indices" which contain each batch index
     indices_per_id = [torch.where(indices[0] == i) for i in range(batch_size)]
@@ -187,7 +187,7 @@ def get_vertical_diameter(images):
              range(batch_size)])
     except IndexError:
         # Hotfix: When one of the images in the batch has not predicted disc, or cup pixels,
-        # the loss for this batch is set to 0 (in order for the dice loss to be able to repair)
+        # the 1 (0 does not work, since we compute ratios)
         # Maybe change this later
         diameters = torch.tensor([1] * batch_size)
     return diameters
