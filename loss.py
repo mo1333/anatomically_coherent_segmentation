@@ -204,6 +204,7 @@ class TopUNetLoss(_Loss):
         self.l1 = torch.nn.L1Loss()
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> tuple[Any, Any, Any, Any]:
+        print(input[2].shape, target[2].shape)
         return (self.dice(input[0], target[0]) +
                 self.loss_config["lambda_kl"] * self.kldiv(input[1], target[1]) +
                 self.loss_config["lambda_l1"] * self.l1(input[2], target[2]),

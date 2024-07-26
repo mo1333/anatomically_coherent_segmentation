@@ -16,7 +16,7 @@ from monai.utils import first
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from evaluate_util import get_model2, plot_metric_over_thresh, plot_model_output, evaluate_polar_model
+from evaluate_util import get_model3, plot_metric_over_thresh, plot_model_output, evaluate_polar_model
 from train_util import dataloader_setup, TopUNet, dataloader_setup_topunet
 from loss import TotalLoss, TopUNetLoss
 
@@ -103,8 +103,8 @@ def train(config=None):
             counter += 1
         writer.add_scalar("validation_loss/total", val_loss_total / counter, epoch)
         writer.add_scalar("validation_loss/diceCe", val_loss_dice / counter, epoch)
-        writer.add_scalar("validation_loss/topology", val_loss_kl / counter, epoch)
-        writer.add_scalar("validation_loss/cdr", val_loss_l1 / counter, epoch)
+        writer.add_scalar("validation_loss/kl", val_loss_kl / counter, epoch)
+        writer.add_scalar("validation_loss/l1", val_loss_l1 / counter, epoch)
         writer.add_image("sample output channel 1", outputs[0][0, 1], global_step=epoch, dataformats="HW")
         writer.add_image("sample output channel 2", outputs[0][0, 2], global_step=epoch, dataformats="HW")
 
@@ -115,30 +115,26 @@ def train(config=None):
     # ------------------
     # --- EVALUATION ---
     # ------------------
-
+    best_metric_per_channel = [0]*2
     if bool(config["evaluate_after_training"]):
-        model = get_model2(exp_path, config)
+        model = get_model3(exp_path, config)
 
         img, seg = first(val_dl)
         output_images = model(img)
-        if bool(loss_config["sigmoid"]):
-            y_pred = th.sigmoid(output_images.detach())
-        if bool(loss_config["softmax"]):
-            y_pred = th.softmax(output_images.detach(), dim=1)
 
-        plot_model_output((img,
-                           y_pred[0],
-                           seg),
+        plot_model_output((img[:, :3],
+                           output_images[0][0],
+                           seg[0]),
                           exp_path + "model_output.png")
 
-        metric = DiceMetric()
-        best_metric_per_channel, best_threshold_per_channel = plot_metric_over_thresh(config,
-                                                                                      metric,
-                                                                                      model,
-                                                                                      val_dl,
-                                                                                      writer,
-                                                                                      exp_path,
-                                                                                      device)
+        # metric = DiceMetric()
+        # best_metric_per_channel, best_threshold_per_channel = plot_metric_over_thresh(config,
+        #                                                                               metric,
+        #                                                                               model,
+        #                                                                               val_dl,
+        #                                                                               writer,
+        #                                                                               exp_path,
+        #                                                                               device)
 
         # if polar:
         #     best_metric_per_channel = evaluate_polar_model(config,

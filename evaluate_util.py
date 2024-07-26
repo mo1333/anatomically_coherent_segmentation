@@ -12,8 +12,7 @@ from monai.metrics import HausdorffDistanceMetric
 from monai.metrics import DiceMetric
 
 from loss import TotalLoss, get_vertical_diameter
-from train_util import val_dataloader_setup
-
+from train_util import val_dataloader_setup, TopUNet
 
 
 def get_model(exp_path, config):
@@ -73,6 +72,14 @@ def get_model2(exp_path, config):
         num_res_units=model_config["num_res_units"],
         act=model_config["activation"]
     )
+
+    model.load_state_dict(th.load(exp_path + "model.pt"))
+    model.eval()
+
+    return model
+
+def get_model3(exp_path, config):
+    model = TopUNet(config=config)
 
     model.load_state_dict(th.load(exp_path + "model.pt"))
     model.eval()
