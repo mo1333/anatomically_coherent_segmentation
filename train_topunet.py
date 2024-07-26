@@ -123,7 +123,7 @@ def train(config=None):
         output_images = model(img)
 
         plot_model_output((img[:, :3],
-                           output_images[0][0],
+                           output_images[0][0].detach().cpu(),
                            seg[0]),
                           exp_path + "model_output.png")
 
