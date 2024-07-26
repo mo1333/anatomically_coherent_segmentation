@@ -3,7 +3,7 @@ from __future__ import annotations
 from typing import Tuple, Any
 
 import torch
-from monai.losses import DiceCELoss
+from monai.losses import DiceCELoss, DiceLoss
 from monai.utils import LossReduction
 from torch.nn.modules.loss import _Loss
 
@@ -123,7 +123,7 @@ class TopologyLoss(_Loss):
 
 
 class CDRLoss(_Loss):
-    def __init__(self, sigmoid, softmax, device, offset=0.05, strech_factor=1/2):
+    def __init__(self, sigmoid, softmax, device, offset=0.05, strech_factor=1 / 2):
         super().__init__()
         self.sigmoid = sigmoid
         self.softmax = softmax
@@ -191,3 +191,22 @@ def get_vertical_diameter(images):
         # Maybe change this later
         diameters = torch.tensor([1] * batch_size)
     return diameters
+
+
+class TopUNetLoss(_Loss):
+    def __init__(self, loss_config):
+        super(TopUNetLoss, self).__init__()
+        self.loss_config = loss_config
+        self.dice = DiceCELoss(lambda_dice=loss_config["lambda_dice"],
+                               lambda_ce=loss_config["lambda_ce"],
+                               include_background=bool(loss_config["include_background"]))
+        self.kldiv = torch.nn.KLDivLoss()
+        self.l1 = torch.nn.L1Loss()
+
+    def forward(self, input: torch.Tensor, target: torch.Tensor) -> tuple[Any, Any, Any, Any]:
+        return (self.dice(input[0], target[0]) +
+                self.loss_config["lambda_kl"] * self.kldiv(input[1], target[1]) +
+                self.loss_config["lambda_l1"] * self.l1(input[2], target[2]),
+                self.dice(input[0], target[0]),
+                self.loss_config["lambda_kl"] * self.kldiv(input[1], target[1]),
+                self.loss_config["lambda_l1"] * self.l1(input[2], target[2]))

@@ -1,10 +1,15 @@
 import os
+from typing import Tuple
 
 import numpy as np
 import torch as th
 from monai.data import ArrayDataset
+from monai.networks.nets import UNet
+from monai.networks.blocks import UnetResBlock
 from monai.transforms import EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
 from torch.utils.data import DataLoader
+
+from dataset import DatasetTopUNet
 
 
 def setup_loader(config, file_names_img, file_names_seg, transformer, shuffle):
@@ -132,3 +137,84 @@ def val_dataloader_setup():
     names = sorted(os.listdir(val_image_path_polar))
 
     return val_dataloader, val_polar_dataloader, names
+
+
+class TopUNet(th.nn.Module):
+    def __init__(self, config):
+        super(TopUNet, self).__init__()
+        model_config = config["model_config"]
+        self.unet = UNet(spatial_dims=model_config["spatial_dims"],
+                         in_channels=model_config["in_channels"] + model_config["additional_in_channels"], # additional in channels encode pixel positions, one for each spatial dimension
+                         out_channels=model_config["channels"][0],
+                         channels=model_config["channels"],
+                         strides=model_config["strides"],
+                         kernel_size=model_config["kernel_size"],
+                         up_kernel_size=model_config["up_kernel_size"],
+                         num_res_units=model_config["num_res_units"],
+                         act=model_config["activation"])
+
+        self.conv_m = th.nn.Sequential(
+            UnetResBlock(
+                spatial_dims=model_config["spatial_dims"],
+                in_channels=model_config["channels"][0],
+                out_channels=model_config["channels_conv_m"],
+                kernel_size=model_config["kernel_size"],
+                stride=1,
+                norm_name='INSTANCE',
+                act_name=model_config["activation"]),
+            th.nn.Conv2d(
+                in_channels=model_config["channels_conv_m"],
+                out_channels=model_config["out_channels"],
+                kernel_size=1,
+                stride=1
+            )
+        )
+
+        self.conv_s = th.nn.Sequential(
+            UnetResBlock(
+                spatial_dims=model_config["spatial_dims"],
+                in_channels=model_config["channels"][0],
+                out_channels=model_config["channels_conv_m"],
+                kernel_size=model_config["kernel_size"],
+                stride=1,
+                norm_name='INSTANCE',
+                act_name=model_config["activation"]),
+            th.nn.Conv2d(
+                in_channels=model_config["channels_conv_m"],
+                out_channels=model_config["number_anatomical_layers"],
+                kernel_size=1,
+                stride=1
+            )
+        )
+
+    def forward(self, input) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
+        unet_output = self.unet(input)
+        pixel_wise_labeling = th.softmax(self.conv_m(unet_output), dim=1)
+        qs = th.softmax(self.conv_s(unet_output), dim=3) # take row-wise soft max (column-wise in paper, but we have rotated images!)
+        B, C, H, W = qs.shape
+        vector = th.arange(1, W + 1).float()  # [1, 2, 3, ..., W]
+        s = th.einsum('bchw,w->bch', qs, vector)
+
+        # Iterate through the channels starting from the second channel
+        for j in range(1, C):
+            s[:, j, :] = s[:, j - 1, :] + th.nn.functional.relu(s[:, j, :] - s[:, j - 1, :])
+        return pixel_wise_labeling, qs, s
+
+
+def dataloader_setup_topunet(config):
+    training_data = DatasetTopUNet(
+        "data_topunet/REFUGE2/Train/Images/",
+        "data_topunet/REFUGE2/Train/Disc_Masks/",
+        "data_topunet/REFUGE2/Train/q_Masks/",
+        "data_topunet/REFUGE2/Train/s_Masks/"
+    )
+    train_dataloader = DataLoader(training_data, batch_size=config["batch_size"], shuffle=True)
+
+    val_data = DatasetTopUNet(
+        "data_topunet/REFUGE2/Validation/Images/",
+        "data_topunet/REFUGE2/Validation/Disc_Masks/",
+        "data_topunet/REFUGE2/Validation/q_Masks/",
+        "data_topunet/REFUGE2/Validation/s_Masks/"
+    )
+    val_dataloader = DataLoader(val_data, batch_size=config["batch_size"], shuffle=False)
+    return train_dataloader, val_dataloader

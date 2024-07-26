@@ -2,13 +2,15 @@
 	"timestamp": "",
 	"experiment_name": "",
 	"overwrite_exp_path": "",
-	"model_type": "unet",
-	"model_config": 
+	"model_config":
 	{
-		"spatial_dims": 2, 
-		"in_channels": 3, 
+		"spatial_dims": 2,
+		"in_channels": 3,
+		"additional_in_channels": 2,
 		"out_channels": 3,
-		"channels": [16, 32, 64, 128, 256], 
+		"channels": [16, 32, 64, 128, 256],
+        "channels_conv_m": 8,
+		"number_anatomical_layers": 2,
 		"strides": [2, 2, 2, 2],
 		"kernel_size": 3,
 		"up_kernel_size": 3,
@@ -18,13 +20,10 @@
 	"loss_config":
 	{
 		"include_background": 1,
-		"sigmoid": 1,
-		"softmax": 0,
 		"lambda_dice": 1.0,
 		"lambda_ce": 1.0,
-		"lambda_top": 100,
-		"lambda_cdr": 10,
-		"post_func": ""
+		"lambda_l1": 1.0,
+		"lambda_kl": 1.0
 	},
 	"data_shortage_config":
 	{
@@ -32,10 +31,9 @@
 		"end_percentage": 1.0,
 		"number_of_experiments": 10
 	},
-	"evaluate_after_training": 1,
+	"evaluate_after_training": 0,
 	"cuda_name": "cuda:1",
 	"batch_size": 8,
 	"epochs": 1,
-	"perc_data_used": 1.0,
-	"polar_data_used": 1
+	"perc_data_used": 1.0
 }
