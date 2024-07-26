@@ -140,11 +140,11 @@ def val_dataloader_setup():
 
 
 class TopUNet(th.nn.Module):
-    def __init__(self, config):
+    def __init__(self, config, overwrite_device_to_cpu=False):
         super(TopUNet, self).__init__()
         model_config = config["model_config"]
         self.config = config
-        self.device = th.device(config["cuda_name"] if th.cuda.is_available() else "cpu")
+        self.device = th.device(config["cuda_name"] if th.cuda.is_available() and not overwrite_device_to_cpu else "cpu")
         self.unet = UNet(spatial_dims=model_config["spatial_dims"],
                          in_channels=model_config["in_channels"] + model_config["additional_in_channels"], # additional in channels encode pixel positions, one for each spatial dimension
                          out_channels=model_config["channels"][0],

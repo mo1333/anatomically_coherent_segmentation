@@ -31,7 +31,7 @@
 		"end_percentage": 1.0,
 		"number_of_experiments": 10
 	},
-	"evaluate_after_training": 0,
+	"evaluate_after_training": 1,
 	"cuda_name": "cuda:1",
 	"batch_size": 8,
 	"epochs": 1,

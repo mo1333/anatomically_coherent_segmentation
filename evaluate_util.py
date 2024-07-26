@@ -78,8 +78,8 @@ def get_model2(exp_path, config):
 
     return model
 
-def get_model3(exp_path, config):
-    model = TopUNet(config=config)
+def get_model3(exp_path, config, overwrite_device_to_cpu=False):
+    model = TopUNet(config=config, overwrite_device_to_cpu=overwrite_device_to_cpu)
 
     model.load_state_dict(th.load(exp_path + "model.pt"))
     model.eval()

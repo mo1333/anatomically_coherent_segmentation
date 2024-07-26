@@ -117,7 +117,7 @@ def train(config=None):
     # ------------------
     best_metric_per_channel = [0]*2
     if bool(config["evaluate_after_training"]):
-        model = get_model3(exp_path, config)
+        model = get_model3(exp_path, config, overwrite_device_to_cpu=True)
 
         img, seg = first(val_dl)
         output_images = model(img)
