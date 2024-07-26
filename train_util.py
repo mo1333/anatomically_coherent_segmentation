@@ -143,6 +143,8 @@ class TopUNet(th.nn.Module):
     def __init__(self, config):
         super(TopUNet, self).__init__()
         model_config = config["model_config"]
+        self.config = config
+        self.device = th.device(config["cuda_name"] if th.cuda.is_available() else "cpu")
         self.unet = UNet(spatial_dims=model_config["spatial_dims"],
                          in_channels=model_config["in_channels"] + model_config["additional_in_channels"], # additional in channels encode pixel positions, one for each spatial dimension
                          out_channels=model_config["channels"][0],
@@ -192,7 +194,7 @@ class TopUNet(th.nn.Module):
         pixel_wise_labeling = th.softmax(self.conv_m(unet_output), dim=1)
         qs = th.softmax(self.conv_s(unet_output), dim=3) # take row-wise soft max (column-wise in paper, but we have rotated images!)
         B, C, H, W = qs.shape
-        vector = th.arange(1, W + 1).float()  # [1, 2, 3, ..., W]
+        vector = th.arange(1, W + 1).float().to(self.device)  # [1, 2, 3, ..., W]
         s = th.einsum('bchw,w->bch', qs, vector)
 
         # Iterate through the channels starting from the second channel
