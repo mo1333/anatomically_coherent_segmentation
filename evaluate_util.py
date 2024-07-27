@@ -341,7 +341,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             plt.savefig(exp_path + "topunet_seg_labels.png")
 
             temp_img = topunet_labels[1][0].permute(1, 2, 0).numpy()
-            plt.imshow(np.concatenate((temp_img, zero_padding), axis=2))
+            plt.imshow(np.concatenate((zero_padding, temp_img), axis=2))
             plt.title(names[j])
             plt.savefig(exp_path + "topunet_q_labels.png")
 
@@ -350,7 +350,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             plt.savefig(exp_path + "output_seg.png")
 
             temp_img = np.transpose(output_q.detach().cpu().numpy()[0], (1, 2, 0))
-            plt.imshow(np.concatenate((temp_img, zero_padding), axis=2))
+            plt.imshow(np.concatenate((zero_padding, temp_img), axis=2))
             plt.title(names[j])
             plt.savefig(exp_path + "output_q.png")
 
