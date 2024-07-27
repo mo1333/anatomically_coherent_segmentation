@@ -313,7 +313,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
 
         pred[:, :, 0] = pred[:, :, 0] > s[1].reshape(-1, 1) # fill background with ones where no disc is
         for i in channels_of_interest:
-            pred[:, :, i] = pred[:, :, i] <= s[i].reshape(-1, 1)
+            pred[:, :, i] = pred[:, :, i] <= s[i-1].reshape(-1, 1)
         pred = pred.astype(np.uint8) * 255
 
         output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(pred, (1, 0, 2)))
