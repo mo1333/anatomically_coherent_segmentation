@@ -353,7 +353,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             plt.title(names[j])
             plt.savefig(exp_path + "output_q.png")
 
-            plt.imshow(np.transpose(pred, (1, 2, 0)))
+            plt.imshow(np.concatenate((pred, zero_padding), axis=2))
             plt.title(names[j])
             plt.savefig(exp_path + "output_using_s.png")
 
