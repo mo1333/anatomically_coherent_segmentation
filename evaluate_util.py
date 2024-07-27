@@ -363,7 +363,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             plt.savefig(exp_path + "output_cartesian.png")
         # ------------------------------------
         for i, channel in enumerate(channels_of_interest):
-            output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel]), 1)
+            output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= 127), 1)
             y_true_only1channel = th.unsqueeze(og_labels[:, channel], 1)
             metrics[i].append(th.mean(dice(output_only1channel, y_true_only1channel)))
 
