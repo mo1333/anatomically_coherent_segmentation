@@ -316,7 +316,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             pred[:, :, i] = pred[:, :, i] <= s[i-1].reshape(-1, 1)
         pred = pred.astype(np.uint8) * 255
 
-        output_cartesian = settings_dict[names[j]].convertToCartesianImage(pred, (1, 0, 2))
+        output_cartesian = settings_dict[names[j]].convertToCartesianImage(pred)
         output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
         output_cartesian = np.expand_dims(output_cartesian, axis=0)
 
