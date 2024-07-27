@@ -319,6 +319,8 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
         output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
         output_cartesian = np.expand_dims(output_cartesian, axis=0)
 
+        zero_padding = np.zeros(shape=(output_image.shape[1], output_image.shape[2], 1))
+
         # ------------------------------------
         if j == 0:
             plt.imshow(og_image[0].permute(1, 2, 0).numpy())
@@ -337,25 +339,23 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             plt.title(names[j])
             plt.savefig(exp_path + "topunet_seg_labels.png")
 
-            plt.imshow(topunet_labels[1][0].permute(1, 2, 0).numpy())
+            temp_img = topunet_labels[1][0].permute(1, 2, 0).numpy()
+            plt.imshow(np.concatenate((temp_img, zero_padding), axis=2))
             plt.title(names[j])
             plt.savefig(exp_path + "topunet_q_labels.png")
-
-            plt.imshow(topunet_labels[2][0].permute(1, 2, 0).numpy())
-            plt.title(names[j])
-            plt.savefig(exp_path + "topunet_s_labels.png")
 
             plt.imshow(np.transpose(output_image, (1, 2, 0)))
             plt.title(names[j])
             plt.savefig(exp_path + "output_seg.png")
 
-            plt.imshow(np.transpose(output_q.detach().cpu().numpy()[0], (1, 2, 0)))
+            temp_img = np.transpose(output_q.detach().cpu().numpy()[0], (1, 2, 0))
+            plt.imshow(np.concatenate((temp_img, zero_padding), axis=2))
             plt.title(names[j])
-            plt.savefig(exp_path + "output_seg.png")
+            plt.savefig(exp_path + "output_q.png")
 
             plt.imshow(np.transpose(pred, (1, 2, 0)))
             plt.title(names[j])
-            plt.savefig(exp_path + "output_seg.png")
+            plt.savefig(exp_path + "output_using_s.png")
 
             plt.imshow(np.transpose(output_cartesian[0], (1, 2, 0)))
             plt.title(names[j])
