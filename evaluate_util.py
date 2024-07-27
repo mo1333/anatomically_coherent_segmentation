@@ -295,7 +295,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
 
     plt.figure(3)
     dice = DiceMetric(reduction=None)
-    channels_of_interest = [0, 1]
+    channels_of_interest = [1, 2]
     metrics = [[] for _ in range(len(channels_of_interest))]
     for j, (og_batch, topunet_batch) in enumerate(zip(val_dataloader, val_topunet_dataloader)):
         og_image, og_labels = og_batch[0], og_batch[1]
@@ -309,11 +309,12 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
 
         pred = np.arange(1, output_image.shape[1] + 1).reshape(1, -1)
         pred = np.expand_dims(np.repeat(pred, output_image.shape[2], axis=0), axis=2)
-        pred = np.repeat(pred, len(channels_of_interest), axis=2) # two channels of interest
+        pred = np.repeat(pred, 3, axis=2) # 3 channel image: 0.. background, 1.. cup, 2.. disc
 
+        pred[:, :, 0] = pred[:, :, 0] > s[1].reshape(-1, 1) # fill background with ones where no disc is
         for i in channels_of_interest:
             pred[:, :, i] = pred[:, :, i] <= s[i].reshape(-1, 1)
-            pred = pred.astype(np.uint8) * 255
+        pred = pred.astype(np.uint8) * 255
 
         output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(pred, (1, 0, 2)))
         output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
@@ -353,7 +354,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             plt.title(names[j])
             plt.savefig(exp_path + "output_q.png")
 
-            plt.imshow(np.concatenate((pred, zero_padding), axis=2))
+            plt.imshow(pred)
             plt.title(names[j])
             plt.savefig(exp_path + "output_using_s.png")
 
