@@ -138,6 +138,27 @@ def val_dataloader_setup():
 
     return val_dataloader, val_polar_dataloader, names
 
+def val_topunet_dataloader_setup():
+    transformer_val = Compose([LoadImage(image_only=True),
+                               EnsureChannelFirst(),
+                               ScaleIntensity()])
+
+    val_image_path = "data/REFUGE2/Validation/Images/"
+    val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
+
+    config = {"batch_size": 1}
+
+    val_dataloader = setup_loader(config,
+                                  sorted([val_image_path + file for file in os.listdir(val_image_path)]),
+                                  sorted([val_dm_path + file for file in os.listdir(val_dm_path)]),
+                                  transformer_val,
+                                  shuffle=False)
+
+    _, val_topunet_dataloader = dataloader_setup_topunet(config)
+
+    names = sorted(os.listdir(val_image_path))
+    return val_dataloader, val_topunet_dataloader, names
+
 
 class TopUNet(th.nn.Module):
     def __init__(self, config, overwrite_device_to_cpu=False):

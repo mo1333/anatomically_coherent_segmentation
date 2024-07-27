@@ -16,7 +16,7 @@ from monai.utils import first
 from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from evaluate_util import get_model3, plot_metric_over_thresh, plot_model_output, evaluate_polar_model
+from evaluate_util import get_model3, plot_model_output, evaluate_topunet_model
 from train_util import dataloader_setup, TopUNet, dataloader_setup_topunet
 from loss import TotalLoss, TopUNetLoss
 
@@ -122,28 +122,18 @@ def train(config=None):
         img, seg = first(val_dl)
         output_images = model(img)
 
-        plot_model_output((img[:, :3],
+        plot_model_output((img[:, :3] / 255,
                            output_images[0][0].detach().cpu(),
                            seg[0]),
                           exp_path + "model_output.png")
 
-        # metric = DiceMetric()
-        # best_metric_per_channel, best_threshold_per_channel = plot_metric_over_thresh(config,
-        #                                                                               metric,
-        #                                                                               model,
-        #                                                                               val_dl,
-        #                                                                               writer,
-        #                                                                               exp_path,
-        #                                                                               device)
+        model = get_model3(exp_path, config)
 
-        # if polar:
-        #     best_metric_per_channel = evaluate_polar_model(config,
-        #                                                    best_threshold_per_channel,
-        #                                                    metric,
-        #                                                    model,
-        #                                                    writer,
-        #                                                    exp_path,
-        #                                                    device)
+        evaluate_topunet_model(config,
+                               model,
+                               exp_path,
+                               device=device)
+
 
     # --------------
     # --- FINISH ---

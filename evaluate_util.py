@@ -12,7 +12,7 @@ from monai.metrics import HausdorffDistanceMetric
 from monai.metrics import DiceMetric
 
 from loss import TotalLoss, get_vertical_diameter
-from train_util import val_dataloader_setup, TopUNet
+from train_util import val_dataloader_setup, TopUNet, val_topunet_dataloader_setup
 
 
 def get_model(exp_path, config):
@@ -224,9 +224,10 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, exp_p
     return best_metric_per_channel, best_threshold_per_channel
 
 
-def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writer, save_name, device=th.device("cpu")):
+def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writer, exp_path, device=th.device("cpu")):
     with open("data_polar/REFUGE2/Validation/settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
+
     plt.figure(3)
     val_dataloader, polar_val_dataloader, names = val_dataloader_setup()
     device_model = model.to(device)
@@ -250,22 +251,27 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
         if j == 0:
             plt.imshow(og_image[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(save_name + "og_image.png")
+            plt.savefig(exp_path + "og_image.png")
+
             plt.imshow(og_labels[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(save_name + "og_labels.png")
+            plt.savefig(exp_path + "og_labels.png")
+
             plt.imshow(polar_image.detach().cpu()[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(save_name + "polar_image.png")
+            plt.savefig(exp_path + "polar_image.png")
+
             plt.imshow(polar_labels[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(save_name + "polar_labels.png")
+            plt.savefig(exp_path + "polar_labels.png")
+
             plt.imshow(np.transpose(output, (1, 2, 0)))
             plt.title(names[j])
-            plt.savefig(save_name + "output.png")
+            plt.savefig(exp_path + "output.png")
+
             plt.imshow(np.transpose(output_cartesian[0], (1, 2, 0)))
             plt.title(names[j])
-            plt.savefig(save_name + "output_cartesian.png")
+            plt.savefig(exp_path + "output_cartesian.png")
         # ------------------------------------
 
         for i, (channel, thresh) in enumerate(zip(channels_of_interest, best_threshold_per_channel)):
@@ -278,3 +284,96 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
                              dataformats="HW")
     metric_per_channel = [np.mean(m) for m in metrics]
     return metric_per_channel
+
+def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
+    with open("data_topunet/REFUGE2/Validation/settings.pickle", "rb") as handle:
+        settings_dict = pickle.load(handle)
+    val_dataloader, val_topunet_dataloader, names = val_topunet_dataloader_setup()
+    device_model = model.to(device)
+
+    save_name_dice = exp_path + "dice.pickle"
+
+    plt.figure(3)
+    dice = DiceMetric(reduction=None)
+    channels_of_interest = [0, 1]
+    metrics = [[] for _ in range(len(channels_of_interest))]
+    for j, (og_batch, topunet_batch) in enumerate(zip(val_dataloader, val_topunet_dataloader)):
+        og_image, og_labels = og_batch[0], og_batch[1]
+        topunet_image, topunet_labels = topunet_batch[0].to(device), topunet_batch[1]
+        output_image, output_q, output_s = device_model(topunet_image)
+
+        output_image = th.softmax(output_image, dim=1)
+        output_image = output_image.detach().cpu().numpy()[0]
+
+        s = output_s.detach().cpu().numpy()[0]
+
+        pred = np.arange(1, output_image.shape[1] + 1).reshape(1, -1)
+        pred = np.expand_dims(np.repeat(pred, output_image.shape[2], axis=0), axis=2)
+        pred = np.repeat(pred, len(channels_of_interest), axis=2) # two channels of interest
+
+        for i in channels_of_interest:
+            pred[:, :, i] = pred[:, :, i] <= s[i].reshape(-1, 1)
+            pred = pred.astype(np.uint8) * 255
+
+        output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(pred, (1, 0, 2)))
+        output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
+        output_cartesian = np.expand_dims(output_cartesian, axis=0)
+
+        # ------------------------------------
+        if j == 0:
+            plt.imshow(og_image[0].permute(1, 2, 0).numpy())
+            plt.title(names[j])
+            plt.savefig(exp_path + "og_image.png")
+
+            plt.imshow(og_labels[0].permute(1, 2, 0).numpy())
+            plt.title(names[j])
+            plt.savefig(exp_path + "og_labels.png")
+
+            plt.imshow(topunet_image.detach().cpu()[0].permute(1, 2, 0).numpy())
+            plt.title(names[j])
+            plt.savefig(exp_path + "topunet_image.png")
+
+            plt.imshow(topunet_labels[0][0].permute(1, 2, 0).numpy())
+            plt.title(names[j])
+            plt.savefig(exp_path + "topunet_seg_labels.png")
+
+            plt.imshow(topunet_labels[1][0].permute(1, 2, 0).numpy())
+            plt.title(names[j])
+            plt.savefig(exp_path + "topunet_q_labels.png")
+
+            plt.imshow(topunet_labels[2][0].permute(1, 2, 0).numpy())
+            plt.title(names[j])
+            plt.savefig(exp_path + "topunet_s_labels.png")
+
+            plt.imshow(np.transpose(output_image, (1, 2, 0)))
+            plt.title(names[j])
+            plt.savefig(exp_path + "output_seg.png")
+
+            plt.imshow(np.transpose(output_q.detach().cpu().numpy()[0], (1, 2, 0)))
+            plt.title(names[j])
+            plt.savefig(exp_path + "output_seg.png")
+
+            plt.imshow(np.transpose(pred, (1, 2, 0)))
+            plt.title(names[j])
+            plt.savefig(exp_path + "output_seg.png")
+
+            plt.imshow(np.transpose(output_cartesian[0], (1, 2, 0)))
+            plt.title(names[j])
+            plt.savefig(exp_path + "output_cartesian.png")
+        # ------------------------------------
+        for i, channel in enumerate(channels_of_interest):
+            output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel]), 1)
+            y_true_only1channel = th.unsqueeze(og_labels[:, channel], 1)
+            metrics[i].append(th.mean(dice(output_only1channel, y_true_only1channel)))
+
+    with open(save_name_dice, "wb") as handle:
+        pickle.dump(metrics, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+
+
+
+
+
+
+
