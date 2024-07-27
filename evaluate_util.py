@@ -316,7 +316,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             pred[:, :, i] = pred[:, :, i] <= s[i-1].reshape(-1, 1)
         pred = pred.astype(np.uint8) * 255
 
-        output_cartesian = settings_dict[names[j]].convertToCartesianImage(np.transpose(pred, (1, 0, 2)))
+        output_cartesian = settings_dict[names[j]].convertToCartesianImage(pred, (1, 0, 2))
         output_cartesian = np.transpose(output_cartesian, (2, 0, 1))
         output_cartesian = np.expand_dims(output_cartesian, axis=0)
 
@@ -332,7 +332,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             plt.title(names[j])
             plt.savefig(exp_path + "og_labels.png")
 
-            plt.imshow(topunet_image.detach().cpu()[0].permute(1, 2, 0)[:, :, :3].numpy())
+            plt.imshow(topunet_image.detach().cpu()[0].permute(1, 2, 0)[:, :, :3].numpy() / 255)
             plt.title(names[j])
             plt.savefig(exp_path + "topunet_image.png")
 
