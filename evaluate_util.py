@@ -329,7 +329,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
             plt.title(names[j])
             plt.savefig(exp_path + "og_labels.png")
 
-            plt.imshow(topunet_image.detach().cpu()[0].permute(1, 2, 0).numpy())
+            plt.imshow(topunet_image.detach().cpu()[0].permute(1, 2, 0)[:, :, :3].numpy())
             plt.title(names[j])
             plt.savefig(exp_path + "topunet_image.png")
 
