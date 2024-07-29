@@ -229,7 +229,8 @@ def dataloader_setup_topunet(config):
         "data_topunet/REFUGE2/Train/Images/",
         "data_topunet/REFUGE2/Train/Disc_Masks/",
         "data_topunet/REFUGE2/Train/q_Masks/",
-        "data_topunet/REFUGE2/Train/s_Masks/"
+        "data_topunet/REFUGE2/Train/s_Masks/",
+        config
     )
     train_dataloader = DataLoader(training_data, batch_size=config["batch_size"], shuffle=True)
 

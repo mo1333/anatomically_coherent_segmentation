@@ -5,6 +5,7 @@ from tqdm.auto import tqdm
 import ignite
 import matplotlib.pyplot as plt
 import numpy as np
+import pandas as pd
 import torch as th
 from monai.handlers import CheckpointLoader
 from monai.networks.nets import UNet
@@ -77,6 +78,7 @@ def get_model2(exp_path, config):
     model.eval()
 
     return model
+
 
 def get_model3(exp_path, config, overwrite_device_to_cpu=False):
     model = TopUNet(config=config, overwrite_device_to_cpu=overwrite_device_to_cpu)
@@ -285,6 +287,7 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
     metric_per_channel = [np.mean(m) for m in metrics]
     return metric_per_channel
 
+
 def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
     with open("data_topunet/REFUGE2/Validation/settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
@@ -309,11 +312,11 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
 
         pred = np.arange(1, output_image.shape[1] + 1).reshape(1, -1)
         pred = np.expand_dims(np.repeat(pred, output_image.shape[2], axis=0), axis=2)
-        pred = np.repeat(pred, 3, axis=2) # 3 channel image: 0.. background, 1.. cup, 2.. disc
+        pred = np.repeat(pred, 3, axis=2)  # 3 channel image: 0.. background, 1.. cup, 2.. disc
 
-        pred[:, :, 0] = pred[:, :, 0] > s[1].reshape(-1, 1) # fill background with ones where no disc is
+        pred[:, :, 0] = pred[:, :, 0] > s[1].reshape(-1, 1)  # fill background with ones where no disc is
         for i in channels_of_interest:
-            pred[:, :, i] = pred[:, :, i] <= s[i-1].reshape(-1, 1)
+            pred[:, :, i] = pred[:, :, i] <= s[i - 1].reshape(-1, 1)
         pred = pred.astype(np.uint8) * 255
 
         output_cartesian = settings_dict[names[j]].convertToCartesianImage(pred)
@@ -371,10 +374,25 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
         pickle.dump(metrics, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
+def get_dices(exp_path):
+    perc_experiments = [exp_path + path + "/" for path in os.listdir(exp_path) if not (path.endswith(".csv"))]
+    dices = []
+    for perc_exp_path in perc_experiments:
+        with open(perc_exp_path + "dice.pickle", "rb") as handle:
+            dices.append(pickle.load(handle))
 
+    return np.array(dices)
+def sds_file_handling(exp_path):
+    if os.path.isfile(
+            exp_path + "simulated_data_shortage_output.csv"):  # check whether we have just a single experiment, or a collection
+        meta_data = pd.read_csv(exp_path + "simulated_data_shortage_output.csv")
 
+        dices = get_dices(exp_path)
+        dice_dic = {perc: dices[i] for i, perc in enumerate(meta_data["percentages"])}
 
+        return meta_data["percentages"], dice_dic
 
-
-
-
+    else:
+        sub_exp_paths = [exp_path + path + "/" for path in os.listdir(exp_path) if
+                         not (path.endswith(".csv") or path.endswith(".pickle") or path.endswith(".gitignore"))]
+        meta_data = [pd.read_csv(path + "simulated_data_shortage_output.csv") for path in sub_exp_paths]

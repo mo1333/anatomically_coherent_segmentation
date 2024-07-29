@@ -5,12 +5,20 @@ from torch.utils.data import Dataset
 import numpy as np
 
 class DatasetTopUNet(Dataset):
-    def __init__(self, input_path, seg_target_path, q_target_path, s_target_path):
+    def __init__(self, input_path, seg_target_path, q_target_path, s_target_path, config):
         self.input_path = input_path
         self.seg_target_path = seg_target_path
         self.q_target_path = q_target_path
         self.s_target_path = s_target_path
         self.file_names = sorted(os.listdir(input_path))
+
+        if config["perc_data_used"] < 1.0:
+            used_indices = np.random.choice(len(self.file_names),
+                                            size=int(len(self.file_names) * config["perc_data_used"]),
+                                            replace=False)
+            reduced_file_names = [self.file_names[i] for i in used_indices]
+            self.file_names = sorted(reduced_file_names)
+
 
 
     def __len__(self):
