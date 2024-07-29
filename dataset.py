@@ -5,7 +5,7 @@ from torch.utils.data import Dataset
 import numpy as np
 
 class DatasetTopUNet(Dataset):
-    def __init__(self, input_path, seg_target_path, q_target_path, s_target_path, config):
+    def __init__(self, input_path, seg_target_path, q_target_path, s_target_path, config={"perc_data_used": 1.0}):
         self.input_path = input_path
         self.seg_target_path = seg_target_path
         self.q_target_path = q_target_path
