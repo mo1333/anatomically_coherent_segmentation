@@ -171,7 +171,6 @@ def train(config=None):
         if polar:
             best_metric_per_channel = evaluate_polar_model(config,
                                                            best_threshold_per_channel,
-                                                           metric,
                                                            model,
                                                            writer,
                                                            exp_path,

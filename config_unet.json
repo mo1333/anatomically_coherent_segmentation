@@ -2,7 +2,6 @@
 	"timestamp": "",
 	"experiment_name": "",
 	"overwrite_exp_path": "",
-	"model_type": "unet",
 	"model_config": 
 	{
 		"spatial_dims": 2, 
@@ -31,5 +30,5 @@
 	"batch_size": 8,
 	"epochs": 1,
 	"perc_data_used": 1.0,
-	"polar_data_used": 1
+	"polar_data_used": 0
 }

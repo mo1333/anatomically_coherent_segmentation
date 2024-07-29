@@ -214,28 +214,37 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, exp_p
     plt.show()
     plt.close(fig)
 
-    with open(save_name_haus, "wb") as handle:
-        pickle.dump(hausdorff_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+    if not config["polar_data_used"]: # polar data needs to be back transformed to enable a fair comparison
+        with open(save_name_haus, "wb") as handle:
+            pickle.dump(hausdorff_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open(save_name_dice, "wb") as handle:
-        pickle.dump(dice_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(save_name_dice, "wb") as handle:
+            pickle.dump(dice_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
-    with open(save_name_diameters, "wb") as handle:
-        pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        with open(save_name_diameters, "wb") as handle:
+            pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     return best_metric_per_channel, best_threshold_per_channel
 
 
-def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writer, exp_path, device=th.device("cpu")):
+def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_path, device=th.device("cpu")):
     with open("data_polar/REFUGE2/Validation/settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
 
+    save_name_haus = exp_path + "hausdorff.pickle"
+    save_name_dice = exp_path + "dice.pickle"
+    save_name_diameters = exp_path + "diameters.pickle"
+
     plt.figure(3)
+    haus = HausdorffDistanceMetric(reduction=None)
+    dice = DiceMetric(reduction=None)
     val_dataloader, polar_val_dataloader, names = val_dataloader_setup()
     device_model = model.to(device)
     loss_config = config["loss_config"]
     channels_of_interest = [1, 2]
-    metrics = [[] for _ in range(len(channels_of_interest))]
+    dice_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
+    hausdorff_metric_per_channel = []
+    diameters_per_channel = {"label": [[], []], "pred": [[], []]}
     for j, (og_batch, polar_batch) in enumerate(zip(val_dataloader, polar_val_dataloader)):
         og_image, og_labels = og_batch[0], og_batch[1]
         polar_image, polar_labels = polar_batch[0].to(device), polar_batch[1]
@@ -279,18 +288,40 @@ def evaluate_polar_model(config, best_threshold_per_channel, metric, model, writ
         for i, (channel, thresh) in enumerate(zip(channels_of_interest, best_threshold_per_channel)):
             output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= thresh), 1)
             y_true_only1channel = th.unsqueeze(og_labels[:, channel], 1)
-            metrics[i].append(th.mean(metric(output_only1channel, y_true_only1channel)))
+            dice_metric_per_channel[i].append(th.mean(dice(output_only1channel, y_true_only1channel)))
+            hausdorff_metric_per_channel[i].append(th.mean(haus(output_only1channel, y_true_only1channel)))
+
+            label_diameter = get_vertical_diameter(y_true_only1channel[:, 0])
+            pred_diameter = get_vertical_diameter(output_only1channel[:, 0])
+
+            diameters_per_channel["label"][i].append(label_diameter)
+            diameters_per_channel["pred"][i].append(pred_diameter)
+
             writer.add_image("final output channel " + str(channel), output_only1channel[0, 0], global_step=j,
                              dataformats="HW")
             writer.add_image("desired output channel " + str(channel), y_true_only1channel[0, 0], global_step=j,
                              dataformats="HW")
-    metric_per_channel = [np.mean(m) for m in metrics]
-    return metric_per_channel
+
+    with open(save_name_haus, "wb") as handle:
+        pickle.dump(hausdorff_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open(save_name_dice, "wb") as handle:
+        pickle.dump(dice_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open(save_name_diameters, "wb") as handle:
+        pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
 
 
 def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
     with open("data_topunet/REFUGE2/Validation/settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
+
+    save_name_haus = exp_path + "hausdorff.pickle"
+    save_name_dice = exp_path + "dice.pickle"
+    save_name_diameters = exp_path + "diameters.pickle"
+
     val_dataloader, val_topunet_dataloader, names = val_topunet_dataloader_setup()
     device_model = model.to(device)
 
@@ -298,8 +329,11 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
 
     plt.figure(3)
     dice = DiceMetric(reduction=None)
+    haus = HausdorffDistanceMetric(reduction=None)
     channels_of_interest = [1, 2]
-    metrics = [[] for _ in range(len(channels_of_interest))]
+    dice_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
+    hausdorff_metric_per_channel = []
+    diameters_per_channel = {"label": [[], []], "pred": [[], []]}
     for j, (og_batch, topunet_batch) in enumerate(zip(val_dataloader, val_topunet_dataloader)):
         og_image, og_labels = og_batch[0], og_batch[1]
         topunet_image, topunet_labels = topunet_batch[0].to(device), topunet_batch[1]
@@ -368,10 +402,23 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
         for i, channel in enumerate(channels_of_interest):
             output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= 127), 1)
             y_true_only1channel = th.unsqueeze(og_labels[:, channel], 1)
-            metrics[i].append(th.mean(dice(output_only1channel, y_true_only1channel)))
+            dice_metric_per_channel[i].append(th.mean(dice(output_only1channel, y_true_only1channel)))
+            hausdorff_metric_per_channel[i].append(th.mean(haus(output_only1channel, y_true_only1channel)))
+
+            label_diameter = get_vertical_diameter(y_true_only1channel[:, 0])
+            pred_diameter = get_vertical_diameter(output_only1channel[:, 0])
+
+            diameters_per_channel["label"][i].append(label_diameter)
+            diameters_per_channel["pred"][i].append(pred_diameter)
+
+    with open(save_name_haus, "wb") as handle:
+        pickle.dump(hausdorff_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
     with open(save_name_dice, "wb") as handle:
-        pickle.dump(metrics, handle, protocol=pickle.HIGHEST_PROTOCOL)
+        pickle.dump(dice_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open(save_name_diameters, "wb") as handle:
+        pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
 def get_dices(exp_path):
@@ -388,9 +435,9 @@ def sds_file_handling(exp_path):
         meta_data = pd.read_csv(exp_path + "simulated_data_shortage_output.csv")
 
         dices = get_dices(exp_path)
-        dice_dic = {perc: dices[i] for i, perc in enumerate(meta_data["percentages"])}
+        dice_dic = {perc: dices[i] for i, perc in enumerate(meta_data["percentage"])}
 
-        return meta_data["percentages"], dice_dic
+        return meta_data["percentage"], dice_dic
 
     else:
         sub_exp_paths = [exp_path + path + "/" for path in os.listdir(exp_path) if
