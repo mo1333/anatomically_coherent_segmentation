@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 
 from train import train as train_unet
-from train_topunet import as train_topunet
+from train_topunet import train as train_topunet
 
 with open("config_sds.json", 'r') as file:
     config_sds = json.load(file)
