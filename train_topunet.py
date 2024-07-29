@@ -49,12 +49,12 @@ def train(config=None):
     if not os.path.exists(exp_path):
         os.makedirs(exp_path)
 
-    with open(exp_path + "config.json", "w+") as outfile:
+    with open(exp_path + "config_topunet.json", "w+") as outfile:
         json.dump(config, outfile, indent=4)
 
     train_dataloader, val_dataloader = dataloader_setup_topunet(config)
 
-    # get all architectural details from config.json
+    # get all architectural details from config_unet.json
     model = TopUNet(config=config).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)

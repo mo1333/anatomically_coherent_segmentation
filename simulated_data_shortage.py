@@ -2,13 +2,14 @@ import json
 import numpy as np
 import pandas as pd
 
-from train import train
+from train import train as train_unet
+from train_topunet import as train_topunet
 
-with open("config.json", 'r') as file:
-    config = json.load(file)
+with open("config_sds.json", 'r') as file:
+    config_sds = json.load(file)
 
-experiment_name = config["experiment_name"]
-data_shortage_config = config["data_shortage_config"]
+experiment_name = config_sds["experiment_name"]
+data_shortage_config = config_sds["data_shortage_config"]
 
 best_metric_per_percentage = []
 
@@ -16,6 +17,20 @@ percentages = np.linspace(data_shortage_config["start_percentage"],
                           data_shortage_config["end_percentage"],
                           num=data_shortage_config["number_of_experiments"])
 percentages = [round(percentage, 2) for percentage in percentages]
+
+if config_sds["model"] == "unet":
+    train = train_unet
+    with open("config_unet.json", 'r') as file:
+        config = json.load(file)
+
+elif config_sds["model"] == "topunet":
+    train = train_topunet
+    with open("config_topunet.json", 'r') as file:
+        config = json.load(file)
+
+else:
+    raise Exception("Model " + config_sds["model"] + " not implemented! Pick either 'unet' or 'topunet'")
+
 for percentage in percentages:
     config["experiment_name"] = experiment_name + "_" + str(int(percentage*100))
     config["overwrite_exp_path"] = experiment_name + "/" + str(int(percentage*100))

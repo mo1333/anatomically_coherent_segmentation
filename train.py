@@ -37,7 +37,7 @@ def train(config=None):
     # -------------
 
     if not config:
-        with open("config.json", 'r') as file:
+        with open("config_unet.json", 'r') as file:
             config = json.load(file)
 
     device = th.device(config["cuda_name"] if th.cuda.is_available() else "cpu")
@@ -56,7 +56,7 @@ def train(config=None):
     if not os.path.exists(exp_path):
         os.makedirs(exp_path)
 
-    with open(exp_path + "config.json", "w+") as outfile:
+    with open(exp_path + "config_unet.json", "w+") as outfile:
         json.dump(config, outfile, indent=4)
 
     if loss_config["lambda_cdr"] >= 1e-8 and polar:
@@ -67,7 +67,7 @@ def train(config=None):
 
 
 
-    # get all architectural details from config.json
+    # get all architectural details from config_unet.json
     model = UNet(
         spatial_dims=model_config["spatial_dims"],
         in_channels=model_config["in_channels"],
