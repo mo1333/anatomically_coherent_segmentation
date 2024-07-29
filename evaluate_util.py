@@ -243,7 +243,7 @@ def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_
     loss_config = config["loss_config"]
     channels_of_interest = [1, 2]
     dice_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
-    hausdorff_metric_per_channel = []
+    hausdorff_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
     diameters_per_channel = {"label": [[], []], "pred": [[], []]}
     for j, (og_batch, polar_batch) in enumerate(zip(val_dataloader, polar_val_dataloader)):
         og_image, og_labels = og_batch[0], og_batch[1]
@@ -332,7 +332,7 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
     haus = HausdorffDistanceMetric(reduction=None)
     channels_of_interest = [1, 2]
     dice_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
-    hausdorff_metric_per_channel = []
+    hausdorff_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
     diameters_per_channel = {"label": [[], []], "pred": [[], []]}
     for j, (og_batch, topunet_batch) in enumerate(zip(val_dataloader, val_topunet_dataloader)):
         og_image, og_labels = og_batch[0], og_batch[1]
