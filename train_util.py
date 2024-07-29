@@ -146,7 +146,8 @@ def val_topunet_dataloader_setup():
     val_image_path = "data/REFUGE2/Validation/Images/"
     val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
 
-    config = {"batch_size": 1}
+    config = {"batch_size": 1,
+              "perc_data_used": 1.0}
 
     val_dataloader = setup_loader(config,
                                   sorted([val_image_path + file for file in os.listdir(val_image_path)]),
