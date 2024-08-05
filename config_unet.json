@@ -21,8 +21,8 @@
 		"softmax": 0,
 		"lambda_dice": 1.0,
 		"lambda_ce": 1.0,
-		"lambda_top": 100,
-		"lambda_cdr": 10,
+		"lambda_top": 0,
+		"lambda_cdr": 0,
 		"post_func": ""
 	},
 	"evaluate_after_training": 1,
