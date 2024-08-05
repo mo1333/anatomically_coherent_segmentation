@@ -217,7 +217,7 @@ def evaluate_normal_model(config, best_threshold_per_channel, model, writer, exp
     hausdorff_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
     diameters_per_channel = {"label": [[], []], "pred": [[], []]}
     for j, batch in enumerate(val_dataloader):
-        image, labels = batch[0].to(device), batch[1].to(device)
+        image, labels = batch[0].to(device), batch[1]
         output = device_model(image)
         if bool(loss_config["sigmoid"]):
             output = th.sigmoid(output)
