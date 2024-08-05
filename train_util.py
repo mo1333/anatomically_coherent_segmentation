@@ -21,7 +21,7 @@ def setup_loader(config, file_names_img, file_names_seg, transformer, shuffle):
     dataloader = DataLoader(dataset,
                             batch_size=config["batch_size"],
                             shuffle=shuffle,
-                            num_workers=1,
+                            num_workers=0,
                             pin_memory=th.cuda.is_available())
 
     return dataloader
