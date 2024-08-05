@@ -133,7 +133,7 @@ def train(config=None):
             evaluate_topunet_model(config,
                                    model,
                                    exp_path,
-                                   dataset_name=evaluation_dataset,
+                                   dataset=evaluation_dataset,
                                    device=device)
 
 
