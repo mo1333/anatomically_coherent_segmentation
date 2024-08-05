@@ -127,6 +127,7 @@ def eval_dataloader_setup(dataset):
         dm_path = "data/REFUGE2/Test/Disc_Masks/"
         image_path_polar = "data_polar/REFUGE2/Test/Images/"
         dm_path_polar = "data_polar/REFUGE2/Test/Disc_Masks/"
+        num_workers=0 # test dataset with polar part seems to be incompatible with multiple workers
     elif dataset == "chaksu":
         image_path = "data/CHAKSU/Images/"
         dm_path = "data/CHAKSU/Disc_Masks/"
