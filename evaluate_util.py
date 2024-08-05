@@ -223,7 +223,7 @@ def evaluate_normal_model(config, best_threshold_per_channel, model, writer, exp
             output = th.sigmoid(output)
         if bool(loss_config["softmax"]):
             output = th.softmax(output, dim=1)
-        output = output.detach().cpu().numpy()[0]
+        output = output.detach().cpu().numpy()
 
         # ------------------------------------
         if j == 0:
@@ -235,7 +235,7 @@ def evaluate_normal_model(config, best_threshold_per_channel, model, writer, exp
             plt.title(names[j])
             plt.savefig(exp_path + "labels.png")
 
-            plt.imshow(np.transpose(output, (1, 2, 0)))
+            plt.imshow(np.transpose(output[0], (1, 2, 0)))
             plt.title(names[j])
             plt.savefig(exp_path + "output.png")
 
