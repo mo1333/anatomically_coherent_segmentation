@@ -227,11 +227,11 @@ def evaluate_normal_model(config, best_threshold_per_channel, model, writer, exp
 
         # ------------------------------------
         if j == 0:
-            plt.imshow(image[0].permute(1, 2, 0).numpy())
+            plt.imshow(image[0].permute(1, 2, 0).detach().cpu().numpy())
             plt.title(names[j])
             plt.savefig(exp_path + "image.png")
 
-            plt.imshow(labels[0].permute(1, 2, 0).numpy())
+            plt.imshow(labels[0].permute(1, 2, 0).detach().cpu().numpy())
             plt.title(names[j])
             plt.savefig(exp_path + "labels.png")
 
