@@ -229,15 +229,15 @@ def evaluate_normal_model(config, best_threshold_per_channel, model, writer, exp
         if j == 0:
             plt.imshow(image[0].permute(1, 2, 0).detach().cpu().numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "image.png")
+            plt.savefig(exp_path + dataset + "_image.png")
 
             plt.imshow(labels[0].permute(1, 2, 0).detach().cpu().numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "labels.png")
+            plt.savefig(exp_path + dataset + "_labels.png")
 
             plt.imshow(np.transpose(output[0], (1, 2, 0)))
             plt.title(names[j])
-            plt.savefig(exp_path + "output.png")
+            plt.savefig(exp_path + dataset + "_output.png")
 
         # ------------------------------------
 
@@ -315,27 +315,27 @@ def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_
         if j == 0:
             plt.imshow(og_image[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "og_image.png")
+            plt.savefig(exp_path + dataset + "_og_image.png")
 
             plt.imshow(og_labels[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "og_labels.png")
+            plt.savefig(exp_path + dataset + "_og_labels.png")
 
             plt.imshow(polar_image.detach().cpu()[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "polar_image.png")
+            plt.savefig(exp_path + dataset + "_polar_image.png")
 
             plt.imshow(polar_labels[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "polar_labels.png")
+            plt.savefig(exp_path + dataset + "_polar_labels.png")
 
             plt.imshow(np.transpose(output, (1, 2, 0)))
             plt.title(names[j])
-            plt.savefig(exp_path + "output.png")
+            plt.savefig(exp_path + dataset + "_output.png")
 
             plt.imshow(np.transpose(output_cartesian[0], (1, 2, 0)))
             plt.title(names[j])
-            plt.savefig(exp_path + "output_cartesian.png")
+            plt.savefig(exp_path + dataset + "_output_cartesian.png")
         # ------------------------------------
 
         for i, (channel, thresh) in enumerate(zip(channels_of_interest, best_threshold_per_channel)):
@@ -422,41 +422,41 @@ def evaluate_topunet_model(config, model, exp_path, dataset="validation", device
         if j == 0:
             plt.imshow(og_image[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "og_image.png")
+            plt.savefig(exp_path + dataset + "_og_image.png")
 
             plt.imshow(og_labels[0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "og_labels.png")
+            plt.savefig(exp_path + dataset + "_og_labels.png")
 
             plt.imshow(topunet_image.detach().cpu()[0].permute(1, 2, 0)[:, :, :3].numpy() / 255)
             plt.title(names[j])
-            plt.savefig(exp_path + "topunet_image.png")
+            plt.savefig(exp_path + dataset + "_topunet_image.png")
 
             plt.imshow(topunet_labels[0][0].permute(1, 2, 0).numpy())
             plt.title(names[j])
-            plt.savefig(exp_path + "topunet_seg_labels.png")
+            plt.savefig(exp_path + dataset + "_topunet_seg_labels.png")
 
             temp_img = topunet_labels[1][0].permute(1, 2, 0).numpy()
             plt.imshow(np.concatenate((zero_padding, temp_img), axis=2))
             plt.title(names[j])
-            plt.savefig(exp_path + "topunet_q_labels.png")
+            plt.savefig(exp_path + dataset + "_topunet_q_labels.png")
 
             plt.imshow(np.transpose(output_image, (1, 2, 0)))
             plt.title(names[j])
-            plt.savefig(exp_path + "output_seg.png")
+            plt.savefig(exp_path + dataset + "_output_seg.png")
 
             temp_img = np.transpose(output_q.detach().cpu().numpy()[0], (1, 2, 0))
             plt.imshow(np.concatenate((zero_padding, temp_img), axis=2))
             plt.title(names[j])
-            plt.savefig(exp_path + "output_q.png")
+            plt.savefig(exp_path + dataset + "_output_q.png")
 
             plt.imshow(pred)
             plt.title(names[j])
-            plt.savefig(exp_path + "output_using_s.png")
+            plt.savefig(exp_path + dataset + "_output_using_s.png")
 
             plt.imshow(np.transpose(output_cartesian[0], (1, 2, 0)))
             plt.title(names[j])
-            plt.savefig(exp_path + "output_cartesian.png")
+            plt.savefig(exp_path + dataset + "_output_cartesian.png")
         # ------------------------------------
         for i, channel in enumerate(channels_of_interest):
             output_only1channel = th.unsqueeze(th.tensor(output_cartesian[:, channel] >= 127), 1)
