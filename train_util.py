@@ -12,7 +12,7 @@ from torch.utils.data import DataLoader
 from dataset import DatasetTopUNet
 
 
-def setup_loader(config, file_names_img, file_names_seg, transformer, shuffle):
+def setup_loader(config, file_names_img, file_names_seg, transformer, shuffle, num_workers=12):
     dataset = ArrayDataset(img=file_names_img,
                            img_transform=transformer,
                            seg=file_names_seg,
@@ -21,7 +21,7 @@ def setup_loader(config, file_names_img, file_names_seg, transformer, shuffle):
     dataloader = DataLoader(dataset,
                             batch_size=config["batch_size"],
                             shuffle=shuffle,
-                            num_workers=0,
+                            num_workers=num_workers,
                             pin_memory=th.cuda.is_available())
 
     return dataloader
@@ -115,6 +115,8 @@ def eval_dataloader_setup(dataset):
                                EnsureChannelFirst(),
                                ScaleIntensity()])
 
+    num_workers=12
+
     if dataset == "validation":
         image_path = "data/REFUGE2/Validation/Images/"
         dm_path = "data/REFUGE2/Validation/Disc_Masks/"
@@ -130,6 +132,7 @@ def eval_dataloader_setup(dataset):
         dm_path = "data/CHAKSU/Disc_Masks/"
         image_path_polar = "data_polar/CHAKSU/Images/"
         dm_path_polar = "data_polar/CHAKSU/Disc_Masks/"
+        num_workers=0 # chaksu dataset seems to be incompatible with multiple workers
 
     config = {"batch_size": 1}
 
@@ -137,13 +140,15 @@ def eval_dataloader_setup(dataset):
                                   sorted([image_path + file for file in os.listdir(image_path)]),
                                   sorted([dm_path + file for file in os.listdir(dm_path)]),
                                   transformer_val,
-                                  shuffle=False)
+                                  shuffle=False,
+                                  num_workers=num_workers)
 
     val_polar_dataloader = setup_loader(config,
                                         sorted([image_path_polar + file for file in os.listdir(image_path_polar)]),
                                         sorted([dm_path_polar + file for file in os.listdir(dm_path_polar)]),
                                         transformer_val,
-                                        shuffle=False)
+                                        shuffle=False,
+                                        num_workers=num_workers)
 
     names = sorted(os.listdir(image_path))
 

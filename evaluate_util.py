@@ -480,7 +480,7 @@ def evaluate_topunet_model(config, model, exp_path, dataset="validation", device
         pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def get_metrics(exp_path):
+def get_metrics(exp_path, dataset="validation"):
     perc_experiments = [exp_path + path + "/" for path in os.listdir(exp_path) if not (path.endswith(".csv"))]
     # Since the string ordering is '1', '10', '2',... we have to sort by the last integer in the path:
     sorted_perc_experiments = sorted(perc_experiments, key=lambda s: int(re.findall(r'(\d+)', s)[-1]))
@@ -488,13 +488,13 @@ def get_metrics(exp_path):
     hauss = []
     diameters = []
     for perc_exp_path in sorted_perc_experiments:
-        with open(perc_exp_path + "dice.pickle", "rb") as handle:
+        with open(perc_exp_path + dataset + "_dice.pickle", "rb") as handle:
             dices.append(pickle.load(handle))
 
-        with open(perc_exp_path + "hausdorff.pickle", "rb") as handle:
+        with open(perc_exp_path + dataset + "_hausdorff.pickle", "rb") as handle:
             hauss.append(pickle.load(handle))
 
-        with open(perc_exp_path + "diameters.pickle", "rb") as handle:
+        with open(perc_exp_path + dataset + "_diameters.pickle", "rb") as handle:
             diameters.append(pickle.load(handle))
 
     cdrs = []
@@ -505,7 +505,7 @@ def get_metrics(exp_path):
     return np.array(dices), np.array(hauss), cdrs
 
 
-def sds_file_handling(exp_path):
+def sds_file_handling(exp_path, dataset="validation"):
     if os.path.isfile(
             exp_path + "simulated_data_shortage_output.csv"):  # check whether we have just a single experiment, or a collection
         meta_data = pd.read_csv(exp_path + "simulated_data_shortage_output.csv")
@@ -521,7 +521,7 @@ def sds_file_handling(exp_path):
                          not (path.endswith(".csv") or path.endswith(".pickle") or path.endswith(".gitignore"))]
         meta_data = [pd.read_csv(path + "simulated_data_shortage_output.csv") for path in sub_exp_paths]
 
-        metrics = [get_metrics(path) for path in sub_exp_paths]
+        metrics = [get_metrics(path, dataset) for path in sub_exp_paths]
         dices = [m[0] for m in metrics]
         hauss = [m[1] for m in metrics]
         cdrs = [m[2] for m in metrics]
@@ -542,14 +542,14 @@ def sds_file_handling(exp_path):
         return meta_data[0]["percentage"], dice_dic, haus_dic, cdrs_dic
 
 
-def plot_dice_mean_comparison(experiments, labels):
+def plot_dice_mean_comparison(experiments, labels, dataset="validation"):
     experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
     exp_paths = ["experiments/" + name + "/" for name in experiments]
 
     plt.rcParams["figure.figsize"] = (10, 4)
 
     for i in range(len(experiments)):
-        percentages, dice_dic, _, _ = sds_file_handling(exp_paths[i])
+        percentages, dice_dic, _, _ = sds_file_handling(exp_paths[i], dataset)
         whole_dice = np.array([dice_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
         plt.errorbar(percentages + i / 2000,
                      whole_dice.mean(axis=2)[:, 1],
@@ -564,14 +564,14 @@ def plot_dice_mean_comparison(experiments, labels):
     plt.show()
 
 
-def plot_haus_mean_comparison(experiments, labels):
+def plot_haus_mean_comparison(experiments, labels, dataset="validation"):
     experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
     exp_paths = ["experiments/" + name + "/" for name in experiments]
 
     plt.rcParams["figure.figsize"] = (10, 4)
 
     for i in range(len(experiments)):
-        percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i])
+        percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i], dataset)
         whole_haus = np.array([haus_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
         plt.errorbar(percentages + i / 2000,
                      whole_haus.mean(axis=2)[:, 1],
@@ -586,14 +586,14 @@ def plot_haus_mean_comparison(experiments, labels):
     plt.show()
 
 
-def plot_cdr_mae_mean_comparison(experiments, labels):
+def plot_cdr_mae_mean_comparison(experiments, labels, dataset="validation"):
     experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
     exp_paths = ["experiments/" + name + "/" for name in experiments]
 
     plt.rcParams["figure.figsize"] = (10, 4)
 
     for i in range(len(experiments)):
-        percentages, _, _, cdrs = sds_file_handling(exp_paths[i])
+        percentages, _, _, cdrs = sds_file_handling(exp_paths[i], dataset)
         maes = np.array([np.abs(cdrs[perc]["label"] - cdrs[perc]["pred"]) for perc in percentages]).squeeze()
         plt.errorbar(percentages + i / 2000,
                      maes.mean(axis=1),
@@ -605,7 +605,7 @@ def plot_cdr_mae_mean_comparison(experiments, labels):
     plt.show()
 
 
-def plot_dice_violin_comparison(experiments, labels_exp, width_default=0.04,
+def plot_dice_violin_comparison(experiments, labels_exp, dataset="validation", width_default=0.04,
                                 shift_default=30, show_disc=True, show_cup=True,
                                 show_means=False, show_extrema=False):
     experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
@@ -613,12 +613,12 @@ def plot_dice_violin_comparison(experiments, labels_exp, width_default=0.04,
     patches = []
     labels = []
     plt.rcParams["figure.figsize"] = (15, 5)
-    percentages, _, _, _ = sds_file_handling(exp_paths[0])
+    percentages, _, _, _ = sds_file_handling(exp_paths[0], dataset)
     width = width_default * list(percentages)[-1]  # widths depends on the percentage area we look at
     shift_factor = shift_default / list(percentages)[-1]  # as well as how much we want to shift the experiments
 
     for i in range(len(experiments)):
-        percentages, dice_dic, _, _ = sds_file_handling(exp_paths[i])
+        percentages, dice_dic, _, _ = sds_file_handling(exp_paths[i], dataset)
         whole_dice = np.array([dice_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
         if show_disc:
             violin = plt.violinplot(whole_dice[:, 1].T,
@@ -659,7 +659,7 @@ def plot_dice_violin_comparison(experiments, labels_exp, width_default=0.04,
     plt.show()
 
 
-def plot_haus_violin_comparison(experiments, labels_exp, width_default=0.04,
+def plot_haus_violin_comparison(experiments, labels_exp, dataset="validation", width_default=0.04,
                                 shift_default=30, show_disc=True, show_cup=True,
                                 show_means=False, show_extrema=False):
     experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
@@ -667,12 +667,12 @@ def plot_haus_violin_comparison(experiments, labels_exp, width_default=0.04,
     patches = []
     labels = []
     plt.rcParams["figure.figsize"] = (15, 5)
-    percentages, _, _, _ = sds_file_handling(exp_paths[0])
+    percentages, _, _, _ = sds_file_handling(exp_paths[0], dataset)
     width = width_default * list(percentages)[-1]  # widths depends on the percentage area we look at
     shift_factor = shift_default / list(percentages)[-1]  # as well as how much we want to shift the experiments
 
     for i in range(len(experiments)):
-        percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i])
+        percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i], dataset)
         whole_haus = np.array([haus_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
         if show_disc:
             violin = plt.violinplot(whole_haus[:, 1].T,
@@ -713,18 +713,18 @@ def plot_haus_violin_comparison(experiments, labels_exp, width_default=0.04,
     plt.show()
 
 
-def plot_cdr_mae_violin_comparison(experiments, labels_exp, width_default=0.04, shift_default=30,
+def plot_cdr_mae_violin_comparison(experiments, labels_exp, dataset="validation", width_default=0.04, shift_default=30,
                                    show_means=False, show_extrema=False):
     experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
     exp_paths = ["experiments/" + name + "/" for name in experiments]
     patches = []
     plt.rcParams["figure.figsize"] = (15, 5)
-    percentages, _, _, _ = sds_file_handling(exp_paths[0])
+    percentages, _, _, _ = sds_file_handling(exp_paths[0], dataset)
     width = width_default * list(percentages)[-1]  # widths depends on the percentage area we look at
     shift_factor = shift_default / list(percentages)[-1]  # as well as how much we want to shift the experiments
 
     for i in range(len(experiments)):
-        percentages, _, _, cdrs = sds_file_handling(exp_paths[i])
+        percentages, _, _, cdrs = sds_file_handling(exp_paths[i], dataset)
         maes = np.array([np.abs(cdrs[perc]["label"] - cdrs[perc]["pred"]) for perc in percentages]).squeeze()
         violin = plt.violinplot(maes.T,
                                 positions=[p + i / shift_factor for p in percentages],
