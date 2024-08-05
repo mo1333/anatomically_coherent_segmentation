@@ -1,9 +1,11 @@
 import os.path
 import pickle
+import re
 
 from tqdm.auto import tqdm
 import ignite
 import matplotlib.pyplot as plt
+import matplotlib.patches as mpatches
 import numpy as np
 import pandas as pd
 import torch as th
@@ -13,7 +15,7 @@ from monai.metrics import HausdorffDistanceMetric
 from monai.metrics import DiceMetric
 
 from loss import TotalLoss, get_vertical_diameter
-from train_util import val_dataloader_setup, TopUNet, val_topunet_dataloader_setup
+from train_util import eval_dataloader_setup, TopUNet, val_topunet_dataloader_setup
 
 
 def get_model(exp_path, config):
@@ -122,14 +124,8 @@ def plot_model_output(sample, save_name):
 
 def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, exp_path, device=th.device("cpu")):
     save_name_plot = exp_path + "thresh_variation.png"
-    save_name_haus = exp_path + "hausdorff.pickle"
-    save_name_dice = exp_path + "dice.pickle"
-    save_name_diameters = exp_path + "diameters.pickle"
     loss_config = config["loss_config"]
     device_model = model.to(device)
-
-    haus = HausdorffDistanceMetric(reduction=None)
-    dice = DiceMetric(reduction=None)
 
     channels_of_interest = [1, 2]
     fig, (plots) = plt.subplots(len(channels_of_interest),
@@ -138,9 +134,6 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, exp_p
 
     best_metric_per_channel = []
     best_threshold_per_channel = []
-    hausdorff_metric_per_channel = []
-    dice_metric_per_channel = []
-    diameters_per_channel = {"label": [], "pred": []}
     for plot, j in zip(plots, channels_of_interest):
         best_metric = -1
         best_thresh = -1
@@ -179,18 +172,8 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, exp_p
                 best_metric = m
                 best_thresh = thresh
 
-        y_pred_only1channel = th.unsqueeze(th.tensor(y_pred[:, j] >= best_thresh), 1)
         best_metric_per_channel.append(best_metric)
         best_threshold_per_channel.append(best_thresh)
-
-        hausdorff_metric_per_channel.append(haus(y_pred_only1channel, y_true_only1channel))
-        dice_metric_per_channel.append(dice(y_pred_only1channel, y_true_only1channel))
-
-        label_diameter = get_vertical_diameter(y_true_only1channel[:, 0])
-        pred_diameter = get_vertical_diameter(y_pred_only1channel[:, 0])
-
-        diameters_per_channel["label"].append(label_diameter)
-        diameters_per_channel["pred"].append(pred_diameter)
 
         for i in range(len(list(thresh_list))):
             writer.add_scalar("Dice Score Channel " + str(j), m_list[i], i)
@@ -214,31 +197,101 @@ def plot_metric_over_thresh(config, metric, model, val_dataloader, writer, exp_p
     plt.show()
     plt.close(fig)
 
-    if not config["polar_data_used"]: # polar data needs to be back transformed to enable a fair comparison
-        with open(save_name_haus, "wb") as handle:
-            pickle.dump(hausdorff_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-        with open(save_name_dice, "wb") as handle:
-            pickle.dump(dice_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
-        with open(save_name_diameters, "wb") as handle:
-            pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
-
     return best_metric_per_channel, best_threshold_per_channel
 
 
-def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_path, device=th.device("cpu")):
-    with open("data_polar/REFUGE2/Validation/settings.pickle", "rb") as handle:
-        settings_dict = pickle.load(handle)
-
-    save_name_haus = exp_path + "hausdorff.pickle"
-    save_name_dice = exp_path + "dice.pickle"
-    save_name_diameters = exp_path + "diameters.pickle"
+def evaluate_normal_model(config, best_threshold_per_channel, model, writer, exp_path, dataset="validation",
+                          device=th.device("cpu")):
+    save_name_haus = exp_path + dataset + "_hausdorff.pickle"
+    save_name_dice = exp_path + dataset + "_dice.pickle"
+    save_name_diameters = exp_path + dataset + "_diameters.pickle"
 
     plt.figure(3)
     haus = HausdorffDistanceMetric(reduction=None)
     dice = DiceMetric(reduction=None)
-    val_dataloader, polar_val_dataloader, names = val_dataloader_setup()
+    val_dataloader, _, names = eval_dataloader_setup(dataset)
+    device_model = model.to(device)
+    loss_config = config["loss_config"]
+    channels_of_interest = [1, 2]
+    dice_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
+    hausdorff_metric_per_channel = [[] for _ in range(len(channels_of_interest))]
+    diameters_per_channel = {"label": [[], []], "pred": [[], []]}
+    for j, batch in enumerate(val_dataloader):
+        image, labels = batch[0], batch[1]
+        output = device_model(image)
+        if bool(loss_config["sigmoid"]):
+            output = th.sigmoid(output)
+        if bool(loss_config["softmax"]):
+            output = th.softmax(output, dim=1)
+        output = output.detach().cpu().numpy()[0]
+
+        # ------------------------------------
+        if j == 0:
+            plt.imshow(image[0].permute(1, 2, 0).numpy())
+            plt.title(names[j])
+            plt.savefig(exp_path + "image.png")
+
+            plt.imshow(labels[0].permute(1, 2, 0).numpy())
+            plt.title(names[j])
+            plt.savefig(exp_path + "labels.png")
+
+            plt.imshow(np.transpose(output, (1, 2, 0)))
+            plt.title(names[j])
+            plt.savefig(exp_path + "output.png")
+
+        # ------------------------------------
+
+        for i, (channel, thresh) in enumerate(zip(channels_of_interest, best_threshold_per_channel)):
+            output_only1channel = th.unsqueeze(th.tensor(output[:, channel] >= thresh), 1)
+            y_true_only1channel = th.unsqueeze(labels[:, channel], 1)
+            dice_metric_per_channel[i].append(th.mean(dice(output_only1channel, y_true_only1channel)))
+            hausdorff_metric_per_channel[i].append(th.mean(haus(output_only1channel, y_true_only1channel)))
+
+            label_diameter = get_vertical_diameter(y_true_only1channel[:, 0])
+            pred_diameter = get_vertical_diameter(output_only1channel[:, 0])
+
+            diameters_per_channel["label"][i].append(label_diameter)
+            diameters_per_channel["pred"][i].append(pred_diameter)
+
+            writer.add_image("final output channel " + str(channel), output_only1channel[0, 0], global_step=j,
+                             dataformats="HW")
+            writer.add_image("desired output channel " + str(channel), y_true_only1channel[0, 0], global_step=j,
+                             dataformats="HW")
+
+    with open(save_name_haus, "wb") as handle:
+        pickle.dump(hausdorff_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open(save_name_dice, "wb") as handle:
+        pickle.dump(dice_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+    with open(save_name_diameters, "wb") as handle:
+        pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
+
+
+def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_path, dataset="validation",
+                         device=th.device("cpu")):
+
+    if dataset not in ["validation", "test", "chaksu"]:
+        raise ValueError("No validation for " + dataset + " possible!")
+
+    if dataset == "validation":
+        settings_path = "data_polar/REFUGE2/Validation/"
+    elif dataset == "test":
+        settings_path = "data_polar/REFUGE2/Test/"
+    elif dataset == "chaksu":
+        settings_path = "data_polar/CHAKSU/"
+
+    with open(settings_path + "settings.pickle", "rb") as handle:
+        settings_dict = pickle.load(handle)
+
+    save_name_haus = exp_path + dataset + "_hausdorff.pickle"
+    save_name_dice = exp_path + dataset + "_dice.pickle"
+    save_name_diameters = exp_path + dataset + "_diameters.pickle"
+
+    plt.figure(3)
+    haus = HausdorffDistanceMetric(reduction=None)
+    dice = DiceMetric(reduction=None)
+    val_dataloader, polar_val_dataloader, names = eval_dataloader_setup(dataset)
     device_model = model.to(device)
     loss_config = config["loss_config"]
     channels_of_interest = [1, 2]
@@ -312,20 +365,26 @@ def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_
         pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
+def evaluate_topunet_model(config, model, exp_path, dataset="validation", device=th.device("cpu")):
+    if dataset not in ["validation", "test", "chaksu"]:
+        raise ValueError("No validation for " + dataset + " possible!")
 
+    if dataset == "validation":
+        settings_path = "data_polar/REFUGE2/Validation/"
+    elif dataset == "test":
+        settings_path = "data_polar/REFUGE2/Test/"
+    elif dataset == "chaksu":
+        settings_path = "data_polar/CHAKSU/"
 
-def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
-    with open("data_topunet/REFUGE2/Validation/settings.pickle", "rb") as handle:
+    with open(settings_path + "settings.pickle", "rb") as handle:
         settings_dict = pickle.load(handle)
 
-    save_name_haus = exp_path + "hausdorff.pickle"
-    save_name_dice = exp_path + "dice.pickle"
-    save_name_diameters = exp_path + "diameters.pickle"
+    save_name_haus = exp_path + dataset + "_hausdorff.pickle"
+    save_name_dice = exp_path + dataset + "_dice.pickle"
+    save_name_diameters = exp_path + dataset + "_diameters.pickle"
 
-    val_dataloader, val_topunet_dataloader, names = val_topunet_dataloader_setup()
+    val_dataloader, val_topunet_dataloader, names = val_topunet_dataloader_setup(dataset)
     device_model = model.to(device)
-
-    save_name_dice = exp_path + "dice.pickle"
 
     plt.figure(3)
     dice = DiceMetric(reduction=None)
@@ -421,25 +480,268 @@ def evaluate_topunet_model(config, model, exp_path, device=th.device("cpu")):
         pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def get_dices(exp_path):
+def get_metrics(exp_path):
     perc_experiments = [exp_path + path + "/" for path in os.listdir(exp_path) if not (path.endswith(".csv"))]
+    # Since the string ordering is '1', '10', '2',... we have to sort by the last integer in the path:
+    sorted_perc_experiments = sorted(perc_experiments, key=lambda s: int(re.findall(r'(\d+)', s)[-1]))
     dices = []
-    for perc_exp_path in perc_experiments:
+    hauss = []
+    diameters = []
+    for perc_exp_path in sorted_perc_experiments:
         with open(perc_exp_path + "dice.pickle", "rb") as handle:
             dices.append(pickle.load(handle))
 
-    return np.array(dices)
+        with open(perc_exp_path + "hausdorff.pickle", "rb") as handle:
+            hauss.append(pickle.load(handle))
+
+        with open(perc_exp_path + "diameters.pickle", "rb") as handle:
+            diameters.append(pickle.load(handle))
+
+    cdrs = []
+    for diam in diameters:
+        cdr_label = np.array([diam["label"][0][i] / diam["label"][1][i] for i in range(len(diam["label"][0]))])
+        cdr_pred = np.array([diam["pred"][0][i] / diam["pred"][1][i] for i in range(len(diam["label"][0]))])
+        cdrs.append({"label": cdr_label, "pred": cdr_pred})
+    return np.array(dices), np.array(hauss), cdrs
+
+
 def sds_file_handling(exp_path):
     if os.path.isfile(
             exp_path + "simulated_data_shortage_output.csv"):  # check whether we have just a single experiment, or a collection
         meta_data = pd.read_csv(exp_path + "simulated_data_shortage_output.csv")
 
-        dices = get_dices(exp_path)
+        dices, hauss, cdrs = get_metrics(exp_path)
         dice_dic = {perc: dices[i] for i, perc in enumerate(meta_data["percentage"])}
+        haus_dic = {perc: hauss[i] for i, perc in enumerate(meta_data["percentage"])}
 
-        return meta_data["percentage"], dice_dic
+        return meta_data["percentage"], dice_dic, haus_dic, cdrs
 
     else:
         sub_exp_paths = [exp_path + path + "/" for path in os.listdir(exp_path) if
                          not (path.endswith(".csv") or path.endswith(".pickle") or path.endswith(".gitignore"))]
         meta_data = [pd.read_csv(path + "simulated_data_shortage_output.csv") for path in sub_exp_paths]
+
+        metrics = [get_metrics(path) for path in sub_exp_paths]
+        dices = [m[0] for m in metrics]
+        hauss = [m[1] for m in metrics]
+        cdrs = [m[2] for m in metrics]
+
+        joinced_dices = np.concatenate(dices, axis=2)
+        joinced_hauss = np.concatenate(hauss, axis=2)
+        joined_cdrs = []
+        for i, _ in enumerate(cdrs[0]):
+            joined_labels = np.concatenate([cdr[i]["label"] for cdr in cdrs])
+            joined_preds = np.concatenate([cdr[i]["pred"] for cdr in cdrs])
+            joined_cdrs.append({"label": joined_labels, "pred": joined_preds})
+
+        # assumption: all experiments were run with the same percentage range
+        dice_dic = {perc: joinced_dices[i] for i, perc in enumerate(meta_data[0]["percentage"])}
+        haus_dic = {perc: joinced_hauss[i] for i, perc in enumerate(meta_data[0]["percentage"])}
+        cdrs_dic = {perc: joined_cdrs[i] for i, perc in enumerate(meta_data[0]["percentage"])}
+
+        return meta_data[0]["percentage"], dice_dic, haus_dic, cdrs_dic
+
+
+def plot_dice_mean_comparison(experiments, labels):
+    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    exp_paths = ["experiments/" + name + "/" for name in experiments]
+
+    plt.rcParams["figure.figsize"] = (10, 4)
+
+    for i in range(len(experiments)):
+        percentages, dice_dic, _, _ = sds_file_handling(exp_paths[i])
+        whole_dice = np.array([dice_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+        plt.errorbar(percentages + i / 2000,
+                     whole_dice.mean(axis=2)[:, 1],
+                     linestyle="-", color=experiments_colors[i][0], label=labels[i] + ", disc")
+        plt.errorbar(percentages + i / 2000,
+                     whole_dice.mean(axis=2)[:, 0],
+                     linestyle="--", color=experiments_colors[i][1], label=labels[i] + ", cup")
+
+    plt.xlabel("fraction of used training data")
+    plt.ylabel("dice score")
+    plt.legend(loc=4)  # loc 4 ... lower right
+    plt.show()
+
+
+def plot_haus_mean_comparison(experiments, labels):
+    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    exp_paths = ["experiments/" + name + "/" for name in experiments]
+
+    plt.rcParams["figure.figsize"] = (10, 4)
+
+    for i in range(len(experiments)):
+        percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i])
+        whole_haus = np.array([haus_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+        plt.errorbar(percentages + i / 2000,
+                     whole_haus.mean(axis=2)[:, 1],
+                     linestyle="-", color=experiments_colors[i][0], label=labels[i] + ", disc")
+        plt.errorbar(percentages + i / 2000,
+                     whole_haus.mean(axis=2)[:, 0],
+                     linestyle="--", color=experiments_colors[i][1], label=labels[i] + ", cup")
+
+    plt.xlabel("fraction of used training data")
+    plt.ylabel("hausdorff distance")
+    plt.legend(loc=1)  # loc 1 ... upper right
+    plt.show()
+
+
+def plot_cdr_mae_mean_comparison(experiments, labels):
+    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    exp_paths = ["experiments/" + name + "/" for name in experiments]
+
+    plt.rcParams["figure.figsize"] = (10, 4)
+
+    for i in range(len(experiments)):
+        percentages, _, _, cdrs = sds_file_handling(exp_paths[i])
+        maes = np.array([np.abs(cdrs[perc]["label"] - cdrs[perc]["pred"]) for perc in percentages]).squeeze()
+        plt.errorbar(percentages + i / 2000,
+                     maes.mean(axis=1),
+                     linestyle="-", color=experiments_colors[i][0], label=labels[i])
+
+    plt.xlabel("fraction of used training data")
+    plt.ylabel("MAE of vCDR")
+    plt.legend(loc=1)  # loc 1 ... upper right
+    plt.show()
+
+
+def plot_dice_violin_comparison(experiments, labels_exp, width_default=0.04,
+                                shift_default=30, show_disc=True, show_cup=True,
+                                show_means=False, show_extrema=False):
+    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    exp_paths = ["experiments/" + name + "/" for name in experiments]
+    patches = []
+    labels = []
+    plt.rcParams["figure.figsize"] = (15, 5)
+    percentages, _, _, _ = sds_file_handling(exp_paths[0])
+    width = width_default * list(percentages)[-1]  # widths depends on the percentage area we look at
+    shift_factor = shift_default / list(percentages)[-1]  # as well as how much we want to shift the experiments
+
+    for i in range(len(experiments)):
+        percentages, dice_dic, _, _ = sds_file_handling(exp_paths[i])
+        whole_dice = np.array([dice_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+        if show_disc:
+            violin = plt.violinplot(whole_dice[:, 1].T,
+                                    positions=[p + i / shift_factor for p in percentages],
+                                    widths=width,
+                                    showmeans=show_means,
+                                    showextrema=show_extrema,
+                                    side="high")
+            for pc in violin['bodies']:
+                pc.set_facecolor(experiments_colors[i][0])
+                pc.set_edgecolor(experiments_colors[i][0])
+            # for partname in ('cbars','cmins','cmaxes'):
+            #     vp = violin[partname]
+            #     vp.set_edgecolor(experiments_colors[i][0])
+            patches.append(mpatches.Patch(color=experiments_colors[i][0]))
+            labels.append(labels_exp[i] + ", disc")
+
+        if show_cup:
+            violin = plt.violinplot(whole_dice[:, 0].T,
+                                    positions=[p + i / shift_factor for p in percentages],
+                                    widths=width,
+                                    showmeans=False,
+                                    showextrema=False,
+                                    side="high")
+            for pc in violin['bodies']:
+                pc.set_facecolor(experiments_colors[i][1])
+                pc.set_edgecolor(experiments_colors[i][1])
+            # for partname in ('cbars','cmins','cmaxes'):
+            #     vp = violin[partname]
+            #     vp.set_edgecolor(experiments_colors[i][1])
+            patches.append(mpatches.Patch(color=experiments_colors[i][1]))
+            labels.append(labels_exp[i] + ", cup")
+
+    plt.xlabel("fraction of used training data")
+    plt.ylabel("dice score")
+    plt.legend(patches, labels, loc=4)  # loc 4 ... lower right
+    # plt.savefig("comparison.png")
+    plt.show()
+
+
+def plot_haus_violin_comparison(experiments, labels_exp, width_default=0.04,
+                                shift_default=30, show_disc=True, show_cup=True,
+                                show_means=False, show_extrema=False):
+    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    exp_paths = ["experiments/" + name + "/" for name in experiments]
+    patches = []
+    labels = []
+    plt.rcParams["figure.figsize"] = (15, 5)
+    percentages, _, _, _ = sds_file_handling(exp_paths[0])
+    width = width_default * list(percentages)[-1]  # widths depends on the percentage area we look at
+    shift_factor = shift_default / list(percentages)[-1]  # as well as how much we want to shift the experiments
+
+    for i in range(len(experiments)):
+        percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i])
+        whole_haus = np.array([haus_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+        if show_disc:
+            violin = plt.violinplot(whole_haus[:, 1].T,
+                                    positions=[p + i / shift_factor for p in percentages],
+                                    widths=width,
+                                    showmeans=show_means,
+                                    showextrema=show_extrema,
+                                    side="high")
+            for pc in violin['bodies']:
+                pc.set_facecolor(experiments_colors[i][0])
+                pc.set_edgecolor(experiments_colors[i][0])
+            # for partname in ('cbars','cmins','cmaxes'):
+            #     vp = violin[partname]
+            #     vp.set_edgecolor(experiments_colors[i][0])
+            patches.append(mpatches.Patch(color=experiments_colors[i][0]))
+            labels.append(labels_exp[i] + ", disc")
+
+        if show_cup:
+            violin = plt.violinplot(whole_haus[:, 0].T,
+                                    positions=[p + i / shift_factor for p in percentages],
+                                    widths=width,
+                                    showmeans=False,
+                                    showextrema=False,
+                                    side="high")
+            for pc in violin['bodies']:
+                pc.set_facecolor(experiments_colors[i][1])
+                pc.set_edgecolor(experiments_colors[i][1])
+            # for partname in ('cbars','cmins','cmaxes'):
+            #     vp = violin[partname]
+            #     vp.set_edgecolor(experiments_colors[i][1])
+            patches.append(mpatches.Patch(color=experiments_colors[i][1]))
+            labels.append(labels_exp[i] + ", cup")
+
+    plt.xlabel("fraction of used training data")
+    plt.ylabel("hausdorff distance")
+    plt.legend(patches, labels, loc=1)  # loc 1 ... upper right
+    # plt.savefig("comparison.png")
+    plt.show()
+
+
+def plot_cdr_mae_violin_comparison(experiments, labels_exp, width_default=0.04, shift_default=30,
+                                   show_means=False, show_extrema=False):
+    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    exp_paths = ["experiments/" + name + "/" for name in experiments]
+    patches = []
+    plt.rcParams["figure.figsize"] = (15, 5)
+    percentages, _, _, _ = sds_file_handling(exp_paths[0])
+    width = width_default * list(percentages)[-1]  # widths depends on the percentage area we look at
+    shift_factor = shift_default / list(percentages)[-1]  # as well as how much we want to shift the experiments
+
+    for i in range(len(experiments)):
+        percentages, _, _, cdrs = sds_file_handling(exp_paths[i])
+        maes = np.array([np.abs(cdrs[perc]["label"] - cdrs[perc]["pred"]) for perc in percentages]).squeeze()
+        violin = plt.violinplot(maes.T,
+                                positions=[p + i / shift_factor for p in percentages],
+                                widths=width,
+                                showmeans=show_means,
+                                showextrema=show_extrema,
+                                side="high")
+        for pc in violin['bodies']:
+            pc.set_facecolor(experiments_colors[i][0])
+            pc.set_edgecolor(experiments_colors[i][0])
+        # for partname in ('cbars','cmins','cmaxes'):
+        #     vp = violin[partname]
+        #     vp.set_edgecolor(experiments_colors[i][0])
+        patches.append(mpatches.Patch(color=experiments_colors[i][0]))
+
+    plt.xlabel("fraction of used training data")
+    plt.ylabel("MAE of vCDR")
+    plt.legend(patches, labels_exp, loc=1)  # loc 1 ... upper right
+    # plt.savefig("comparison.png")
+    plt.show()

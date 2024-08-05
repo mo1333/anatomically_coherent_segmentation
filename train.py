@@ -3,20 +3,14 @@ import os
 from datetime import datetime
 from tqdm.auto import tqdm
 
-import numpy as np
-import ignite
 import torch as th
-from ignite.contrib.handlers import ProgressBar
-from monai.data import ArrayDataset
-from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler, MeanDice
-from monai.metrics import DiceMetric, LossMetric
+from monai.metrics import DiceMetric
 from monai.networks.nets import UNet
-from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
 from monai.utils import first
-from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
-from evaluate_util import get_model2, plot_metric_over_thresh, plot_model_output, evaluate_polar_model
+from evaluate_util import get_model2, plot_metric_over_thresh, plot_model_output, evaluate_normal_model, \
+    evaluate_polar_model
 from train_util import dataloader_setup
 from loss import TotalLoss
 
@@ -64,8 +58,6 @@ def train(config=None):
 
     train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader = dataloader_setup(
         config)
-
-
 
     # get all architectural details from config_unet.json
     model = UNet(
@@ -168,13 +160,24 @@ def train(config=None):
                                                                                       exp_path,
                                                                                       device)
 
-        if polar:
-            best_metric_per_channel = evaluate_polar_model(config,
-                                                           best_threshold_per_channel,
-                                                           model,
-                                                           writer,
-                                                           exp_path,
-                                                           device)
+        if not polar:
+            for evaluation_dataset in ["validation", "test", "chaksu"]:
+                evaluate_normal_model(config,
+                                      best_threshold_per_channel,
+                                      model,
+                                      writer,
+                                      exp_path,
+                                      evaluation_dataset,
+                                      device)
+        else:
+            for evaluation_dataset in ["validation", "test", "chaksu"]:
+                evaluate_polar_model(config,
+                                     best_threshold_per_channel,
+                                     model,
+                                     writer,
+                                     exp_path,
+                                     evaluation_dataset,
+                                     device)
 
     # --------------
     # --- FINISH ---

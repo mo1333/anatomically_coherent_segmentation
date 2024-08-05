@@ -108,56 +108,55 @@ def dataloader_setup(config):
     return train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader
 
 
-def val_dataloader_setup():
+def eval_dataloader_setup(dataset):
+    if dataset not in ["validation", "test", "chaksu"]:
+        raise ValueError("No validation for " + dataset + " possible!")
     transformer_val = Compose([LoadImage(image_only=True),
                                EnsureChannelFirst(),
                                ScaleIntensity()])
 
-    val_image_path = "data/REFUGE2/Validation/Images/"
-    val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
-
-    val_image_path_polar = "data_polar/REFUGE2/Validation/Images/"
-    val_dm_path_polar = "data_polar/REFUGE2/Validation/Disc_Masks/"
+    if dataset == "validation":
+        image_path = "data/REFUGE2/Validation/Images/"
+        dm_path = "data/REFUGE2/Validation/Disc_Masks/"
+        image_path_polar = "data_polar/REFUGE2/Validation/Images/"
+        dm_path_polar = "data_polar/REFUGE2/Validation/Disc_Masks/"
+    elif dataset == "test":
+        image_path = "data/REFUGE2/Test/Images/"
+        dm_path = "data/REFUGE2/Test/Disc_Masks/"
+        image_path_polar = "data_polar/REFUGE2/Test/Images/"
+        dm_path_polar = "data_polar/REFUGE2/Test/Disc_Masks/"
+    elif dataset == "chaksu":
+        image_path = "data/CHAKSU/Images/"
+        dm_path = "data/CHAKSU/Disc_Masks/"
+        image_path_polar = "data_polar/CHAKSU/Images/"
+        dm_path_polar = "data_polar/CHAKSU/Disc_Masks/"
 
     config = {"batch_size": 1}
 
     val_dataloader = setup_loader(config,
-                                  sorted([val_image_path + file for file in os.listdir(val_image_path)]),
-                                  sorted([val_dm_path + file for file in os.listdir(val_dm_path)]),
+                                  sorted([image_path + file for file in os.listdir(image_path)]),
+                                  sorted([dm_path + file for file in os.listdir(dm_path)]),
                                   transformer_val,
                                   shuffle=False)
 
     val_polar_dataloader = setup_loader(config,
-                                        sorted(
-                                            [val_image_path_polar + file for file in os.listdir(val_image_path_polar)]),
-                                        sorted([val_dm_path_polar + file for file in os.listdir(val_dm_path_polar)]),
+                                        sorted([image_path_polar + file for file in os.listdir(image_path_polar)]),
+                                        sorted([dm_path_polar + file for file in os.listdir(dm_path_polar)]),
                                         transformer_val,
                                         shuffle=False)
 
-    names = sorted(os.listdir(val_image_path_polar))
+    names = sorted(os.listdir(image_path))
 
     return val_dataloader, val_polar_dataloader, names
 
-def val_topunet_dataloader_setup():
-    transformer_val = Compose([LoadImage(image_only=True),
-                               EnsureChannelFirst(),
-                               ScaleIntensity()])
 
-    val_image_path = "data/REFUGE2/Validation/Images/"
-    val_dm_path = "data/REFUGE2/Validation/Disc_Masks/"
-
+def val_topunet_dataloader_setup(dataset="validation"):
     config = {"batch_size": 1,
               "perc_data_used": 1.0}
 
-    val_dataloader = setup_loader(config,
-                                  sorted([val_image_path + file for file in os.listdir(val_image_path)]),
-                                  sorted([val_dm_path + file for file in os.listdir(val_dm_path)]),
-                                  transformer_val,
-                                  shuffle=False)
+    val_dataloader, _, names = eval_dataloader_setup(dataset)
+    _, val_topunet_dataloader = dataloader_setup_topunet(config, dataset)
 
-    _, val_topunet_dataloader = dataloader_setup_topunet(config)
-
-    names = sorted(os.listdir(val_image_path))
     return val_dataloader, val_topunet_dataloader, names
 
 
@@ -166,9 +165,11 @@ class TopUNet(th.nn.Module):
         super(TopUNet, self).__init__()
         model_config = config["model_config"]
         self.config = config
-        self.device = th.device(config["cuda_name"] if th.cuda.is_available() and not overwrite_device_to_cpu else "cpu")
+        self.device = th.device(
+            config["cuda_name"] if th.cuda.is_available() and not overwrite_device_to_cpu else "cpu")
         self.unet = UNet(spatial_dims=model_config["spatial_dims"],
-                         in_channels=model_config["in_channels"] + model_config["additional_in_channels"], # additional in channels encode pixel positions, one for each spatial dimension
+                         in_channels=model_config["in_channels"] + model_config["additional_in_channels"],
+                         # additional in channels encode pixel positions, one for each spatial dimension
                          out_channels=model_config["channels"][0],
                          channels=model_config["channels"],
                          strides=model_config["strides"],
@@ -214,7 +215,8 @@ class TopUNet(th.nn.Module):
     def forward(self, input) -> Tuple[th.Tensor, th.Tensor, th.Tensor]:
         unet_output = self.unet(input)
         pixel_wise_labeling = th.softmax(self.conv_m(unet_output), dim=1)
-        qs = th.softmax(self.conv_s(unet_output), dim=3) # take row-wise soft max (column-wise in paper, but we have rotated images!)
+        qs = th.softmax(self.conv_s(unet_output),
+                        dim=3)  # take row-wise soft max (column-wise in paper, but we have rotated images!)
         B, C, H, W = qs.shape
         vector = th.arange(1, W + 1).float().to(self.device)  # [1, 2, 3, ..., W]
         s = th.einsum('bchw,w->bch', qs, vector)
@@ -225,7 +227,7 @@ class TopUNet(th.nn.Module):
         return pixel_wise_labeling, qs, s
 
 
-def dataloader_setup_topunet(config):
+def dataloader_setup_topunet(config, eval_dataset="validation"):
     training_data = DatasetTopUNet(
         "data_topunet/REFUGE2/Train/Images/",
         "data_topunet/REFUGE2/Train/Disc_Masks/",
@@ -235,11 +237,20 @@ def dataloader_setup_topunet(config):
     )
     train_dataloader = DataLoader(training_data, batch_size=config["batch_size"], shuffle=True)
 
+    if eval_dataset not in ["validation", "test", "chaksu"]:
+        raise ValueError("No validation for " + eval_dataset + " possible!")
+
+    if eval_dataset == "validation":
+        path = "data_topunet/REFUGE2/Validation/"
+    elif eval_dataset == "test":
+        path = "data_topunet/REFUGE2/Test/"
+    elif eval_dataset == "chaksu":
+        path = "data_topunet/CHAKSU/"
     val_data = DatasetTopUNet(
-        "data_topunet/REFUGE2/Validation/Images/",
-        "data_topunet/REFUGE2/Validation/Disc_Masks/",
-        "data_topunet/REFUGE2/Validation/q_Masks/",
-        "data_topunet/REFUGE2/Validation/s_Masks/"
+        path + "Images/",
+        path + "Disc_Masks/",
+        path + "q_Masks/",
+        path + "s_Masks/"
     )
     val_dataloader = DataLoader(val_data, batch_size=config["batch_size"], shuffle=False)
     return train_dataloader, val_dataloader
