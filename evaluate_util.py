@@ -253,9 +253,11 @@ def evaluate_normal_model(config, best_threshold_per_channel, model, writer, exp
             diameters_per_channel["label"][i].append(label_diameter)
             diameters_per_channel["pred"][i].append(pred_diameter)
 
-            writer.add_image("final output channel " + str(channel), output_only1channel[0, 0], global_step=j,
+            writer.add_image(dataset + " final output channel " + str(channel), output_only1channel[0, 0],
+                             global_step=j,
                              dataformats="HW")
-            writer.add_image("desired output channel " + str(channel), y_true_only1channel[0, 0], global_step=j,
+            writer.add_image(dataset + " desired output channel " + str(channel), y_true_only1channel[0, 0],
+                             global_step=j,
                              dataformats="HW")
 
     with open(save_name_haus, "wb") as handle:
@@ -270,7 +272,6 @@ def evaluate_normal_model(config, best_threshold_per_channel, model, writer, exp
 
 def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_path, dataset="validation",
                          device=th.device("cpu")):
-
     if dataset not in ["validation", "test", "chaksu"]:
         raise ValueError("No validation for " + dataset + " possible!")
 
@@ -350,9 +351,11 @@ def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_
             diameters_per_channel["label"][i].append(label_diameter)
             diameters_per_channel["pred"][i].append(pred_diameter)
 
-            writer.add_image("final output channel " + str(channel), output_only1channel[0, 0], global_step=j,
+            writer.add_image(dataset + " final output channel " + str(channel), output_only1channel[0, 0],
+                             global_step=j,
                              dataformats="HW")
-            writer.add_image("desired output channel " + str(channel), y_true_only1channel[0, 0], global_step=j,
+            writer.add_image(dataset + " desired output channel " + str(channel), y_true_only1channel[0, 0],
+                             global_step=j,
                              dataformats="HW")
 
     with open(save_name_haus, "wb") as handle:
@@ -365,7 +368,7 @@ def evaluate_polar_model(config, best_threshold_per_channel, model, writer, exp_
         pickle.dump(diameters_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)
 
 
-def evaluate_topunet_model(config, model, exp_path, dataset="validation", device=th.device("cpu")):
+def evaluate_topunet_model(config, model, writer, exp_path, dataset="validation", device=th.device("cpu")):
     if dataset not in ["validation", "test", "chaksu"]:
         raise ValueError("No validation for " + dataset + " possible!")
 
@@ -469,6 +472,13 @@ def evaluate_topunet_model(config, model, exp_path, dataset="validation", device
 
             diameters_per_channel["label"][i].append(label_diameter)
             diameters_per_channel["pred"][i].append(pred_diameter)
+
+            writer.add_image(dataset + " final output channel " + str(channel), output_only1channel[0, 0],
+                             global_step=j,
+                             dataformats="HW")
+            writer.add_image(dataset + " desired output channel " + str(channel), y_true_only1channel[0, 0],
+                             global_step=j,
+                             dataformats="HW")
 
     with open(save_name_haus, "wb") as handle:
         pickle.dump(hausdorff_metric_per_channel, handle, protocol=pickle.HIGHEST_PROTOCOL)

@@ -132,6 +132,7 @@ def train(config=None):
         for evaluation_dataset in ["validation", "test", "chaksu"]:
             evaluate_topunet_model(config,
                                    model,
+                                   writer,
                                    exp_path,
                                    dataset=evaluation_dataset,
                                    device=device)
