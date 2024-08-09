@@ -163,8 +163,7 @@ class CDRLoss(_Loss):
 
         # if the predicted ratio is smaller than the ground truth, we have to enhance the optic cup,
         # which can be done by switching the sign
-        if pred_ratio < true_ratio:
-            y_masked = 1 - y * mask
+        y_masked[pred_ratio < true_ratio] = 1 - (y * mask)[pred_ratio < true_ratio]
 
         mse = mse.unsqueeze(1).unsqueeze(1).unsqueeze(1)
 
