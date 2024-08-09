@@ -123,13 +123,13 @@ class TopologyLoss(_Loss):
 
 
 class CDRLoss(_Loss):
-    def __init__(self, sigmoid, softmax, device, offset=0.05, strech_factor=1 / 2):
+    def __init__(self, sigmoid, softmax, device, offset=0.05, stretch_factor=1 / 2):
         super().__init__()
         self.sigmoid = sigmoid
         self.softmax = softmax
         self.device = device
         self.offset = torch.tensor(offset).to(self.device)
-        self.strech_factor = strech_factor
+        self.stretch_factor = stretch_factor
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -151,18 +151,24 @@ class CDRLoss(_Loss):
         pred_cup_diameter = get_vertical_diameter(y[:, 1] >= 0.5)
         pred_disc_diameter = get_vertical_diameter(y[:, 2] >= 0.5)
 
+        true_ratio = torch.div(label_cup_diameter, label_disc_diameter)
+
         # the ratio should not be able to exceed 1, therefore clamp with max=1
-        mse = torch.square(
-            torch.div(label_cup_diameter, label_disc_diameter) - torch.clamp(
-                torch.div(pred_cup_diameter, pred_disc_diameter), max=1)).to(
-            self.device)
+        pred_ratio = torch.clamp(torch.div(pred_cup_diameter, pred_disc_diameter), max=1)
+        mse = torch.square(true_ratio - pred_ratio).to(self.device)
         mask = torch.tensor([0, 1, 0]).to(self.device)  # we only want the cup to change
         mask = mask.unsqueeze(0).unsqueeze(2).unsqueeze(2)
+
         y_masked = y * mask
+
+        # if the predicted ratio is smaller than the ground truth, we have to enhance the optic cup,
+        # which can be done by switching the sign
+        if pred_ratio < true_ratio:
+            y_masked = 1 - y * mask
 
         mse = mse.unsqueeze(1).unsqueeze(1).unsqueeze(1)
 
-        return torch.mean((- self.strech_factor * torch.square(y_masked) + y_masked + self.offset) * mse)
+        return torch.mean((- self.stretch_factor * torch.square(y_masked) + y_masked + self.offset) * mse)
 
 
 def get_vertical_diameter(images):
