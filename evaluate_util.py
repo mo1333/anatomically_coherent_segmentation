@@ -686,8 +686,13 @@ def plot_haus_violin_comparison(experiments, labels_exp, dataset="validation", w
     for i in range(len(experiments)):
         percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i], dataset)
         whole_haus = np.array([haus_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+
+        # sometimes, very bad predictions result in an infinite Hausdorff distance. Those predictions are discarded.
+
         if show_disc:
-            violin = plt.violinplot(whole_haus[:, 1].T,
+            mask_inf = np.isfinite(whole_haus[:, 1])
+            good_data = [data[is_good] for data, is_good in zip(whole_haus[:, 1], mask_inf)]
+            violin = plt.violinplot(good_data,
                                     positions=[p + i / shift_factor for p in percentages],
                                     widths=width,
                                     showmeans=show_means,
@@ -703,7 +708,9 @@ def plot_haus_violin_comparison(experiments, labels_exp, dataset="validation", w
             labels.append(labels_exp[i] + ", disc")
 
         if show_cup:
-            violin = plt.violinplot(whole_haus[:, 0].T,
+            mask_inf = np.isfinite(whole_haus[:, 0])
+            good_data = [data[is_good] for data, is_good in zip(whole_haus[:, 1], mask_inf)]
+            violin = plt.violinplot(good_data,
                                     positions=[p + i / shift_factor for p in percentages],
                                     widths=width,
                                     showmeans=False,
