@@ -3,7 +3,6 @@ import pickle
 import re
 
 from tqdm.auto import tqdm
-import ignite
 import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import numpy as np
@@ -583,11 +582,14 @@ def plot_haus_mean_comparison(experiments, labels, dataset="validation"):
     for i in range(len(experiments)):
         percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i], dataset)
         whole_haus = np.array([haus_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+
+        # sometimes, very bad predictions result in an infinite Hausdorff distance. Those predictions are discarded.
+        whole_haus[~np.isfinite(whole_haus)] = np.NAN
         plt.errorbar(percentages + i / 2000,
-                     whole_haus.mean(axis=2)[:, 1],
+                     np.nanmean(whole_haus, axis=2)[:, 1],
                      linestyle="-", color=experiments_colors[i][0], label=labels[i] + ", disc")
         plt.errorbar(percentages + i / 2000,
-                     whole_haus.mean(axis=2)[:, 0],
+                     np.nanmean(whole_haus, axis=2)[:, 0],
                      linestyle="--", color=experiments_colors[i][1], label=labels[i] + ", cup")
 
     plt.xlabel("fraction of used training data")
