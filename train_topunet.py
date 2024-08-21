@@ -3,17 +3,8 @@ import os
 from datetime import datetime
 from tqdm.auto import tqdm
 
-import numpy as np
-import ignite
 import torch as th
-from ignite.contrib.handlers import ProgressBar
-from monai.data import ArrayDataset
-from monai.handlers import TensorBoardStatsHandler, TensorBoardImageHandler, MeanDice
-from monai.metrics import DiceMetric, LossMetric
-from monai.networks.nets import UNet
-from monai.transforms import Resize, EnsureChannelFirst, LoadImage, Compose, ScaleIntensity
 from monai.utils import first
-from torch.utils.data import DataLoader
 from torch.utils.tensorboard import SummaryWriter
 
 from evaluate_util import get_model3, plot_model_output, evaluate_topunet_model

@@ -71,39 +71,45 @@ def dataloader_setup(config):
                                     train_file_names_img,
                                     train_file_names_seg,
                                     transformer_train,
-                                    shuffle=True)
+                                    shuffle=True,
+                                    num_workers=config["num_workers"])
 
     val_dataloader = setup_loader(config,
                                   sorted([val_image_path + file for file in os.listdir(val_image_path)]),
                                   sorted([val_dm_path + file for file in os.listdir(val_dm_path)]),
                                   transformer_val,
-                                  shuffle=False)
+                                  shuffle=False,
+                                  num_workers=config["num_workers"])
 
     test_dataloader = setup_loader(config,
                                    sorted([test_image_path + file for file in os.listdir(test_image_path)]),
                                    sorted([test_dm_path + file for file in os.listdir(test_dm_path)]),
                                    transformer_val,
-                                   shuffle=False)
+                                   shuffle=False,
+                                   num_workers=config["num_workers"])
 
     train_polar_dataloader = setup_loader(config,
                                           train_file_names_img_polar,
                                           train_file_names_seg_polar,
                                           transformer_train,
-                                          shuffle=True)
+                                          shuffle=True,
+                                          num_workers=config["num_workers"])
 
     val_polar_dataloader = setup_loader(config,
                                         sorted(
                                             [val_image_path_polar + file for file in os.listdir(val_image_path_polar)]),
                                         sorted([val_dm_path_polar + file for file in os.listdir(val_dm_path_polar)]),
                                         transformer_val,
-                                        shuffle=False)
+                                        shuffle=False,
+                                        num_workers=config["num_workers"])
 
     test_polar_dataloader = setup_loader(config,
                                          sorted([test_image_path_polar + file for file in
                                                  os.listdir(test_image_path_polar)]),
                                          sorted([test_dm_path_polar + file for file in os.listdir(test_dm_path_polar)]),
                                          transformer_val,
-                                         shuffle=False)
+                                         shuffle=False,
+                                         num_workers=config["num_workers"])
 
     return train_dataloader, val_dataloader, test_dataloader, train_polar_dataloader, val_polar_dataloader, test_polar_dataloader
 
@@ -115,7 +121,7 @@ def eval_dataloader_setup(dataset):
                                EnsureChannelFirst(),
                                ScaleIntensity()])
 
-    num_workers=12
+    num_workers = 0 # num_workers greater than 0 causes troubles on some servers
 
     if dataset == "validation":
         image_path = "data/REFUGE2/Validation/Images/"
@@ -127,13 +133,13 @@ def eval_dataloader_setup(dataset):
         dm_path = "data/REFUGE2/Test/Disc_Masks/"
         image_path_polar = "data_polar/REFUGE2/Test/Images/"
         dm_path_polar = "data_polar/REFUGE2/Test/Disc_Masks/"
-        num_workers=0 # test dataset with polar part seems to be incompatible with multiple workers
+        num_workers = 0  # test dataset with polar part seems to be incompatible with multiple workers
     elif dataset == "chaksu":
         image_path = "data/CHAKSU/Images/"
         dm_path = "data/CHAKSU/Disc_Masks/"
         image_path_polar = "data_polar/CHAKSU/Images/"
         dm_path_polar = "data_polar/CHAKSU/Disc_Masks/"
-        num_workers=0 # chaksu dataset seems to be incompatible with multiple workers
+        num_workers = 0  # chaksu dataset seems to be incompatible with multiple workers
 
     config = {"batch_size": 1}
 

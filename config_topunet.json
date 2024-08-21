@@ -28,6 +28,7 @@
 	"evaluate_after_training": 1,
 	"cuda_name": "cuda:1",
 	"batch_size": 8,
+	"num_workers": 12,
 	"epochs": 1,
 	"perc_data_used": 1.0
 }

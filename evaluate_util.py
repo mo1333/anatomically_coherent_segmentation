@@ -552,8 +552,14 @@ def sds_file_handling(exp_path, dataset="validation"):
         return meta_data[0]["percentage"], dice_dic, haus_dic, cdrs_dic
 
 
+def setup_colors():
+    colors_univie = [("#0063a6", "#0063a6"), ("#dd4814", "#dd4814"), ("#666666", "#666666")]  # univie colors
+    colors_V2 = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]  # strong contrast colors rgb
+    return colors_univie
+
+
 def plot_dice_mean_comparison(experiments, labels, dataset="validation"):
-    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    experiments_colors = setup_colors()
     exp_paths = ["experiments/" + name + "/" for name in experiments]
 
     plt.rcParams["figure.figsize"] = (10, 4)
@@ -575,7 +581,7 @@ def plot_dice_mean_comparison(experiments, labels, dataset="validation"):
 
 
 def plot_haus_mean_comparison(experiments, labels, dataset="validation"):
-    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    experiments_colors = setup_colors()
     exp_paths = ["experiments/" + name + "/" for name in experiments]
 
     plt.rcParams["figure.figsize"] = (10, 4)
@@ -597,7 +603,7 @@ def plot_haus_mean_comparison(experiments, labels, dataset="validation"):
 
 
 def plot_cdr_mae_mean_comparison(experiments, labels, dataset="validation"):
-    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+    experiments_colors = setup_colors()
     exp_paths = ["experiments/" + name + "/" for name in experiments]
 
     plt.rcParams["figure.figsize"] = (10, 4)
@@ -616,9 +622,9 @@ def plot_cdr_mae_mean_comparison(experiments, labels, dataset="validation"):
 
 
 def plot_dice_violin_comparison(experiments, labels_exp, dataset="validation", width_default=0.04,
-                                shift_default=30, show_disc=True, show_cup=True,
-                                show_means=False, show_extrema=False):
-    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+                                shift_default=30, body_alpha=0.8, show_disc=True, show_cup=True,
+                                show_means=False, show_extrema=False, show_comp_of_two=True):
+    experiments_colors = setup_colors()
     exp_paths = ["experiments/" + name + "/" for name in experiments]
     patches = []
     labels = []
@@ -630,35 +636,55 @@ def plot_dice_violin_comparison(experiments, labels_exp, dataset="validation", w
     for i in range(len(experiments)):
         percentages, dice_dic, _, _ = sds_file_handling(exp_paths[i], dataset)
         whole_dice = np.array([dice_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+        if show_comp_of_two:
+            x_pos = list(percentages)
+            side = "low" if i == 0 else "high"
+        else:
+            x_pos = [p + i / shift_factor for p in percentages]
+            side = "high"
+
         if show_disc:
             violin = plt.violinplot(whole_dice[:, 1].T,
-                                    positions=[p + i / shift_factor for p in percentages],
+                                    positions=x_pos,
                                     widths=width,
                                     showmeans=show_means,
                                     showextrema=show_extrema,
-                                    side="high")
+                                    side=side)
             for pc in violin['bodies']:
                 pc.set_facecolor(experiments_colors[i][0])
                 pc.set_edgecolor(experiments_colors[i][0])
-            # for partname in ('cbars','cmins','cmaxes'):
-            #     vp = violin[partname]
-            #     vp.set_edgecolor(experiments_colors[i][0])
+                pc.set_alpha(body_alpha)
+
+            parts = []
+            if show_means: parts.append("cmeans")
+            if show_extrema:
+                parts.append("cmins")
+                parts.append("cmaxes")
+            for partname in parts:
+                vp = violin[partname]
+                vp.set_edgecolor(experiments_colors[i][0])
             patches.append(mpatches.Patch(color=experiments_colors[i][0]))
             labels.append(labels_exp[i] + ", disc")
 
         if show_cup:
             violin = plt.violinplot(whole_dice[:, 0].T,
-                                    positions=[p + i / shift_factor for p in percentages],
+                                    positions=x_pos,
                                     widths=width,
                                     showmeans=False,
                                     showextrema=False,
-                                    side="high")
+                                    side=side)
             for pc in violin['bodies']:
                 pc.set_facecolor(experiments_colors[i][1])
                 pc.set_edgecolor(experiments_colors[i][1])
-            # for partname in ('cbars','cmins','cmaxes'):
-            #     vp = violin[partname]
-            #     vp.set_edgecolor(experiments_colors[i][1])
+                pc.set_alpha(body_alpha)
+            parts = []
+            if show_means: parts.append("cmeans")
+            if show_extrema:
+                parts.append("cmins")
+                parts.append("cmaxes")
+            for partname in parts:
+                vp = violin[partname]
+                vp.set_edgecolor(experiments_colors[i][1])
             patches.append(mpatches.Patch(color=experiments_colors[i][1]))
             labels.append(labels_exp[i] + ", cup")
 
@@ -670,9 +696,9 @@ def plot_dice_violin_comparison(experiments, labels_exp, dataset="validation", w
 
 
 def plot_haus_violin_comparison(experiments, labels_exp, dataset="validation", width_default=0.04,
-                                shift_default=30, show_disc=True, show_cup=True,
-                                show_means=False, show_extrema=False):
-    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+                                shift_default=30, body_alpha=0.8, show_disc=True, show_cup=True,
+                                show_means=False, show_extrema=False, show_comp_of_two=True):
+    experiments_colors = setup_colors()
     exp_paths = ["experiments/" + name + "/" for name in experiments]
     patches = []
     labels = []
@@ -684,35 +710,54 @@ def plot_haus_violin_comparison(experiments, labels_exp, dataset="validation", w
     for i in range(len(experiments)):
         percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i], dataset)
         whole_haus = np.array([haus_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+        if show_comp_of_two:
+            x_pos = list(percentages)
+            side = "low" if i == 0 else "high"
+        else:
+            x_pos = [p + i / shift_factor for p in percentages]
+            side = "high"
+
         if show_disc:
             violin = plt.violinplot(whole_haus[:, 1].T,
-                                    positions=[p + i / shift_factor for p in percentages],
+                                    positions=x_pos,
                                     widths=width,
                                     showmeans=show_means,
                                     showextrema=show_extrema,
-                                    side="high")
+                                    side=side)
             for pc in violin['bodies']:
                 pc.set_facecolor(experiments_colors[i][0])
                 pc.set_edgecolor(experiments_colors[i][0])
-            # for partname in ('cbars','cmins','cmaxes'):
-            #     vp = violin[partname]
-            #     vp.set_edgecolor(experiments_colors[i][0])
+                pc.set_alpha(body_alpha)
+            parts = []
+            if show_means: parts.append("cmeans")
+            if show_extrema:
+                parts.append("cmins")
+                parts.append("cmaxes")
+            for partname in parts:
+                vp = violin[partname]
+                vp.set_edgecolor(experiments_colors[i][0])
             patches.append(mpatches.Patch(color=experiments_colors[i][0]))
             labels.append(labels_exp[i] + ", disc")
 
         if show_cup:
             violin = plt.violinplot(whole_haus[:, 0].T,
-                                    positions=[p + i / shift_factor for p in percentages],
+                                    positions=x_pos,
                                     widths=width,
                                     showmeans=False,
                                     showextrema=False,
-                                    side="high")
+                                    side=side)
             for pc in violin['bodies']:
                 pc.set_facecolor(experiments_colors[i][1])
                 pc.set_edgecolor(experiments_colors[i][1])
-            # for partname in ('cbars','cmins','cmaxes'):
-            #     vp = violin[partname]
-            #     vp.set_edgecolor(experiments_colors[i][1])
+                pc.set_alpha(body_alpha)
+            parts = []
+            if show_means: parts.append("cmeans")
+            if show_extrema:
+                parts.append("cmins")
+                parts.append("cmaxes")
+            for partname in parts:
+                vp = violin[partname]
+                vp.set_edgecolor(experiments_colors[i][1])
             patches.append(mpatches.Patch(color=experiments_colors[i][1]))
             labels.append(labels_exp[i] + ", cup")
 
@@ -724,8 +769,8 @@ def plot_haus_violin_comparison(experiments, labels_exp, dataset="validation", w
 
 
 def plot_cdr_mae_violin_comparison(experiments, labels_exp, dataset="validation", width_default=0.04, shift_default=30,
-                                   show_means=False, show_extrema=False):
-    experiments_colors = [("b", "cornflowerblue"), ("green", "limegreen"), ("orangered", "coral")]
+                                   body_alpha=0.8, show_means=False, show_extrema=False, show_comp_of_two=True):
+    experiments_colors = setup_colors()
     exp_paths = ["experiments/" + name + "/" for name in experiments]
     patches = []
     plt.rcParams["figure.figsize"] = (15, 5)
@@ -736,18 +781,30 @@ def plot_cdr_mae_violin_comparison(experiments, labels_exp, dataset="validation"
     for i in range(len(experiments)):
         percentages, _, _, cdrs = sds_file_handling(exp_paths[i], dataset)
         maes = np.array([np.abs(cdrs[perc]["label"] - cdrs[perc]["pred"]) for perc in percentages]).squeeze()
+        if show_comp_of_two:
+            x_pos = list(percentages)
+            side = "low" if i == 0 else "high"
+        else:
+            x_pos = [p + i / shift_factor for p in percentages]
+            side = "high"
         violin = plt.violinplot(maes.T,
-                                positions=[p + i / shift_factor for p in percentages],
+                                positions=x_pos,
                                 widths=width,
                                 showmeans=show_means,
                                 showextrema=show_extrema,
-                                side="high")
+                                side=side)
         for pc in violin['bodies']:
             pc.set_facecolor(experiments_colors[i][0])
             pc.set_edgecolor(experiments_colors[i][0])
-        # for partname in ('cbars','cmins','cmaxes'):
-        #     vp = violin[partname]
-        #     vp.set_edgecolor(experiments_colors[i][0])
+            pc.set_alpha(body_alpha)
+        parts = []
+        if show_means: parts.append("cmeans")
+        if show_extrema:
+            parts.append("cmins")
+            parts.append("cmaxes")
+        for partname in parts:
+            vp = violin[partname]
+            vp.set_edgecolor(experiments_colors[i][0])
         patches.append(mpatches.Patch(color=experiments_colors[i][0]))
 
     plt.xlabel("fraction of used training data")
