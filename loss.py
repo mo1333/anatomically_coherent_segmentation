@@ -66,7 +66,6 @@ class NaiveTopologyLoss(_Loss):
         self.sigmoid = sigmoid
         self.softmax = softmax
         self.post_func = post_func
-        self.diff_rounding = DifferentiableRounding()
 
     def forward(self, input: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
         """
@@ -87,7 +86,7 @@ class NaiveTopologyLoss(_Loss):
             y = torch.softmax(input, dim=1)
 
         # we penalize cup everwhere we do not have a disc prob > 0.5
-        disc = self.diff_rounding(y[:, 2])  # add eps to change threshold from 0.5
+        disc = DifferentiableRounding.apply(y[:, 2])  # add eps to change threshold from 0.5
         diff = y[:, 1] - disc
 
         f = torch.clamp(diff, min=0)  # apply elementwise max(x, 0) to diff
@@ -96,7 +95,7 @@ class NaiveTopologyLoss(_Loss):
         return torch.mean(f)
 
 
-class DifferentiableRounding(torch.autograd.function.InplaceFunction):
+class DifferentiableRounding(torch.autograd.Function):
 
     @staticmethod
     def forward(ctx, input):
