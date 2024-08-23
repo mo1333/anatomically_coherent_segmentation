@@ -27,8 +27,8 @@ class TotalLoss(_Loss):
         #                                       post_func=loss_config["post_func"])
 
         if loss_config["lambda_top"] >= 1e-8:
-            self.topologyLoss = TopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
-                                             softmax=bool(loss_config["softmax"]))
+            self.topologyLoss = NaiveTopologyLoss(sigmoid=bool(loss_config["sigmoid"]),
+                                                  softmax=bool(loss_config["softmax"]))
         else:
             self.topologyLoss = DummyLoss(device=device)
 
@@ -61,7 +61,7 @@ class DummyLoss(_Loss):
 
 
 class NaiveTopologyLoss(_Loss):
-    def __init__(self, sigmoid, softmax, post_func):
+    def __init__(self, sigmoid, softmax, post_func=""):
         super().__init__()
         self.sigmoid = sigmoid
         self.softmax = softmax
@@ -86,9 +86,8 @@ class NaiveTopologyLoss(_Loss):
         if self.softmax:
             y = torch.softmax(input, dim=1)
 
-
         # we penalize cup everwhere we do not have a disc prob > 0.5
-        disc = self.diff_rounding(y[:, 2]) # add eps to change threshold from 0.5
+        disc = self.diff_rounding(y[:, 2])  # add eps to change threshold from 0.5
         diff = y[:, 1] - disc
 
         f = torch.clamp(diff, min=0)  # apply elementwise max(x, 0) to diff
