@@ -87,7 +87,7 @@ class NaiveTopologyLoss(_Loss):
 
         # we penalize cup everwhere we do not have a disc prob > 0.5
         disc = DifferentiableRounding.apply(y[:, 2])  # add eps to change threshold from 0.5
-        diff = y[:, 1] - disc
+        diff = y[:, 1] - disc - 0.5
 
         f = torch.clamp(diff, min=0)  # apply elementwise max(x, 0) to diff
         if func_dict[self.post_func]:
