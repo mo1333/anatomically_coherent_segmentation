@@ -589,11 +589,12 @@ def plot_haus_mean_comparison(experiments, labels, dataset="validation"):
     for i in range(len(experiments)):
         percentages, _, haus_dic, _ = sds_file_handling(exp_paths[i], dataset)
         whole_haus = np.array([haus_dic[percentages[i]] for i in range(percentages.shape[0])]).squeeze()
+        whole_haus[~np.isfinite(whole_haus)] = np.nan
         plt.errorbar(percentages + i / 2000,
-                     whole_haus.mean(axis=2)[:, 1],
+                     np.nanmean(whole_haus, axis=2)[:, 1],
                      linestyle="-", color=experiments_colors[i][0], label=labels[i] + ", disc")
         plt.errorbar(percentages + i / 2000,
-                     whole_haus.mean(axis=2)[:, 0],
+                     np.nanmean(whole_haus, axis=2)[:, 0],
                      linestyle="--", color=experiments_colors[i][1], label=labels[i] + ", cup")
 
     plt.xlabel("fraction of used training data")
@@ -807,6 +808,7 @@ def plot_cdr_mae_violin_comparison(experiments, labels_exp, dataset="validation"
             vp.set_edgecolor(experiments_colors[i][0])
         patches.append(mpatches.Patch(color=experiments_colors[i][0]))
 
+    plt.ylim(0, 0.5)
     plt.xlabel("fraction of used training data")
     plt.ylabel("MAE of vCDR")
     plt.legend(patches, labels_exp, loc=1)  # loc 1 ... upper right
