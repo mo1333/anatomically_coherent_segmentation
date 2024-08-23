@@ -96,11 +96,12 @@ class NaiveTopologyLoss(_Loss):
         return torch.mean(f)
 
 
-class DifferentiableRounding(torch.autograd.Function):
+class DifferentiableRounding(torch.autograd.function.InplaceFunction):
 
     @staticmethod
     def forward(ctx, input):
-        return input.round()
+        ctx.input = input
+        return torch.round(input)
 
     @staticmethod
     def backward(ctx, grad_output):
