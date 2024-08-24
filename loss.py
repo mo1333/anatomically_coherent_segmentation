@@ -78,7 +78,7 @@ class NaiveTopologyLoss(_Loss):
         func_dict = {"": None,
                      "square": torch.square,
                      "exp": lambda x: torch.sub(torch.exp(x), 1),
-                     "log": lambda x: torch.log(torch.add(x, 1))}
+                     "log": lambda x: - torch.log(torch.sub(1, x))}
 
         if self.sigmoid:
             y = torch.sigmoid(input)
