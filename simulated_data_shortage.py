@@ -33,9 +33,8 @@ def simulate(config_sds=None, config_model=None, leave_tqdm_and_timestamp=True):
         if not config_model:
             with open("config_topunet.json", 'r') as file:
                 config = json.load(file)
-
-        else:
-            raise Exception("Model " + config_sds["model"] + " not implemented! Pick either 'unet' or 'topunet'")
+    else:
+        raise Exception("Model " + config_sds["model"] + " not implemented! Pick either 'unet' or 'topunet'")
 
     for percentage in percentages:
         config["experiment_name"] = experiment_name + "_" + str(int(percentage * 100))
