@@ -22,7 +22,7 @@ from loss import TotalLoss
 # https://colab.research.google.com/drive/1wy8XUSnNWlhDNazFdvGBHLfdkGvOHBKe#scrollTo=uHAA3LUxD2b6
 
 
-def train(config=None):
+def train(config=None, leave_tqdm_and_timestamp=True):
     starttime = datetime.now()
     now_str = starttime.strftime("%Y_%m_%d__%H_%M_%S")
 
@@ -88,7 +88,7 @@ def train(config=None):
         tst_dl = test_polar_dataloader
 
     writer = SummaryWriter(log_dir=exp_path)
-    for epoch in tqdm(range(epochs), desc="Epochs", leave=True):
+    for epoch in tqdm(range(epochs), desc="Epochs", leave=leave_tqdm_and_timestamp):
         model.train()
         step = 0
         for batch_data in tqdm(trn_dl, desc="Batches", leave=False):
@@ -185,12 +185,13 @@ def train(config=None):
 
     writer.close()
 
-    endtime = datetime.now()
-    time_diff = endtime - starttime
-    hours = divmod(time_diff.total_seconds(), 3600)
-    minutes = divmod(hours[1], 60)
-    seconds = divmod(minutes[1], 1)
-    print("Training+Evaluation took %d:%d:%d" % (hours[0], minutes[0], seconds[0]))
+    if leave_tqdm_and_timestamp:
+        endtime = datetime.now()
+        time_diff = endtime - starttime
+        hours = divmod(time_diff.total_seconds(), 3600)
+        minutes = divmod(hours[1], 60)
+        seconds = divmod(minutes[1], 1)
+        print("Training+Evaluation took %d:%d:%d" % (hours[0], minutes[0], seconds[0]))
 
     return best_metric_per_channel
 

@@ -6,7 +6,7 @@ from train import train as train_unet
 from train_topunet import train as train_topunet
 
 
-def simulate(config_sds=None, config_model=None):
+def simulate(config_sds=None, config_model=None, leave_tqdm_and_timestamp=True):
     if not config_sds:
         with open("config_sds.json", 'r') as file:
             config_sds = json.load(file)
@@ -37,14 +37,11 @@ def simulate(config_sds=None, config_model=None):
         else:
             raise Exception("Model " + config_sds["model"] + " not implemented! Pick either 'unet' or 'topunet'")
 
-    print(config_sds)
-    print(config)
-
     for percentage in percentages:
         config["experiment_name"] = experiment_name + "_" + str(int(percentage * 100))
         config["overwrite_exp_path"] = experiment_name + "/" + str(int(percentage * 100))
         config["perc_data_used"] = percentage
-        best_metric_per_percentage.append(train(config))
+        best_metric_per_percentage.append(train(config, leave_tqdm_and_timestamp))
 
     joined_frame = [[perc, m[0], m[1]] for perc, m in zip(percentages, best_metric_per_percentage)]
     output_frame = pd.DataFrame(joined_frame, columns=['percentage', 'optic_cup_performance', 'optic_disc_performance'])
