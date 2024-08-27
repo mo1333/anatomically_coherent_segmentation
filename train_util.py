@@ -180,8 +180,8 @@ class TopUNet(th.nn.Module):
         self.device = th.device(
             config["cuda_name"] if th.cuda.is_available() and not overwrite_device_to_cpu else "cpu")
         self.unet = UNet(spatial_dims=model_config["spatial_dims"],
-                         in_channels=model_config["in_channels"] + model_config["additional_in_channels"],
                          # additional in channels encode pixel positions, one for each spatial dimension
+                         in_channels=model_config["in_channels"] + model_config["additional_in_channels"],
                          out_channels=model_config["channels"][0],
                          channels=model_config["channels"],
                          strides=model_config["strides"],

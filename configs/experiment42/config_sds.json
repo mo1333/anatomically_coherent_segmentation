@@ -1,0 +1,10 @@
+{
+  "experiment_name": "top_s2",
+  "model": "unet",
+  "data_shortage_config":
+	{
+		"start_percentage": 0.01,
+		"end_percentage": 0.1,
+		"number_of_experiments": 10
+	}
+}

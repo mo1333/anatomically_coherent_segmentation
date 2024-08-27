@@ -45,7 +45,6 @@ def train(config=None):
 
     train_dataloader, val_dataloader = dataloader_setup_topunet(config)
 
-    # get all architectural details from config_unet.json
     model = TopUNet(config=config).to(device)
 
     opt = th.optim.Adam(model.parameters(), 1e-3)

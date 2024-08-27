@@ -1,0 +1,35 @@
+{
+	"timestamp": "",
+	"experiment_name": "",
+	"overwrite_exp_path": "",
+	"model_config": 
+	{
+		"spatial_dims": 2, 
+		"in_channels": 3, 
+		"out_channels": 3,
+		"channels": [16, 32, 64, 128, 256], 
+		"strides": [2, 2, 2, 2],
+		"kernel_size": 3,
+		"up_kernel_size": 3,
+		"num_res_units": 2,
+		"activation": "PReLU"
+	},
+	"loss_config":
+	{
+		"include_background": 1,
+		"sigmoid": 1,
+		"softmax": 0,
+		"lambda_dice": 1.0,
+		"lambda_ce": 1.0,
+		"lambda_top": 0,
+		"lambda_cdr": 0,
+		"post_func": ""
+	},
+	"evaluate_after_training": 1,
+	"cuda_name": "cuda:0",
+	"batch_size": 8,
+	"num_workers": 12,
+	"epochs": 100,
+	"perc_data_used": 1.0,
+	"polar_data_used": 1
+}

@@ -808,7 +808,7 @@ def plot_cdr_mae_violin_comparison(experiments, labels_exp, dataset="validation"
             vp.set_edgecolor(experiments_colors[i][0])
         patches.append(mpatches.Patch(color=experiments_colors[i][0]))
 
-    plt.ylim(0, 0.5)
+    plt.ylim(-0.05, 1.05)
     plt.xlabel("fraction of used training data")
     plt.ylabel("MAE of vCDR")
     plt.legend(patches, labels_exp, loc=1)  # loc 1 ... upper right
