@@ -23,7 +23,7 @@
 		"lambda_ce": 1.0,
 		"lambda_top": 10,
 		"lambda_cdr": 0,
-		"post_func": ""
+		"post_func": "log"
 	},
 	"evaluate_after_training": 1,
 	"cuda_name": "cuda:0",
